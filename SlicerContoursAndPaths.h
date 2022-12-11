@@ -10,7 +10,7 @@ class Contour{
 	public:
 		Contour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
 			//std::cout<<"Contour initialisation z = "<<z_plane<<std::endl;
-			ID = last_ID++;
+			
 			
 			z = z_plane;
 			std::multimap <Point2D, Point2D>::iterator lines_iter = lines_association->begin();
@@ -28,6 +28,7 @@ class Contour{
 				
 				{
 			*/
+			ID = last_ID++;					//update ID in the end
 		}
 		int GetID() { return ID; }
 		void PrintContour(){
@@ -52,10 +53,10 @@ class Path {
 
 class ContoursAndPaths {
 	private:
-		/*
-		std::map <Contour> contours;
 		
-		*/
+		std::map <float, std::map <int, Contour> contours;			//(float) z, (map (int) ID, (Contour) contours) all contours - raw and equidistant
+		
+		
 		std::multimap <float, std::vector<Contour> > raw_contours;	//каждому z соответствует свой набор контуров
 		float z_step_mm;
 		float z_offset_mm;
@@ -69,11 +70,28 @@ class ContoursAndPaths {
 			//std::cout<<"Lines association done! Size: "<<lines_association.size()<<std::endl;
 			if(lines_association.empty())
 				return false;
+			
+		/*new*/
+				//For each z will be new record in "contours"
+			std::map <float, std::map <int, Contour>>::iterator contours_iter;
+			contours_iter = contours.insert( std::make_pair(z,std::map<int, Contour>{}) );
+			
+		/*....*/
+		/*old	
 			std::multimap <float, std::vector<Contour>>::iterator contours_iter;
 			contours_iter = raw_contours.insert(std::make_pair(z, std::vector<Contour>{}) );
+		*/
+			
 			while(!lines_association.empty()){
+			/*new*/
+				contours_iter->second.insert(std::make_pair(Contour::last_ID, Contour(&lines_association, z)));
+				contours_iter->second.find(last_ID-1)->PrintContour();
+			
+			/*....*/
+			/*old
 				contours_iter->second.push_back(Contour(&lines_association, z));
 				contours_iter->second.rbegin()->PrintContour();
+			*/
 			}
 			return true;
 		}
