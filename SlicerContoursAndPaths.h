@@ -33,10 +33,18 @@ class Contour{
 		int GetID() { return ID; }
 		static int GetLastID() { return last_ID; }
 		void PrintContour(){
-			std::cout<<"Contour z = "<<z<<std::endl;
+			std::cout<<"Contour z = "<<z<<" ID = "<<ID<<std::endl;
 			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
 				it->print_point();	
 		}
+};
+
+class RawContour : public Contour{
+	
+};
+
+class EquidistantContour : public Contour{
+	
 };
 int Contour::last_ID = 0;
 
@@ -77,11 +85,8 @@ class ContoursAndPaths {
 			contours_iter = contours.insert( std::pair <float, std::map <int, Contour>> (z, m1) ).first;
 			while(!lines_association.empty()){
 				contours_iter->second.insert(std::make_pair(Contour::GetLastID(), Contour(&lines_association, z)));
-				std::cout<<"ID = "<<Contour::GetLastID()<<std::endl;
-				//contours_iter->second.find(Contour::GetLastID()-1)->second.PrintContour();
 			}
 			for(auto it = contours.begin()->second.begin(); it != contours.begin()->second.end(); it++){
-				std::cout<<"Check ID "<<it->first<<std::endl;
 				it->second.PrintContour();
 			}
 			return true;
@@ -115,7 +120,9 @@ class ContoursAndPaths {
 			return true;
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
-
+		bool MakeEquidistantContours(){
+			return true;
+		}
 };
 
 
