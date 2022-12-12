@@ -31,6 +31,7 @@ class Contour{
 			ID = last_ID++;					//update ID in the end
 		}
 		int GetID() { return ID; }
+		static int GetLastID() { return last_ID; }
 		void PrintContour(){
 			std::cout<<"Contour z = "<<z<<std::endl;
 			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
@@ -54,10 +55,10 @@ class Path {
 class ContoursAndPaths {
 	private:
 		
-		std::map <float, std::map <int, Contour> contours;			//(float) z, (map (int) ID, (Contour) contours) all contours - raw and equidistant
+		std::map <float, std::map <int, Contour> > contours;			//(float) z, (map (int) ID, (Contour) contours) all contours - raw and equidistant
 		
 		
-		std::multimap <float, std::vector<Contour> > raw_contours;	//каждому z соответствует свой набор контуров
+	//	std::multimap <float, std::vector<Contour> > raw_contours;	//каждому z соответствует свой набор контуров
 		float z_step_mm;
 		float z_offset_mm;
 		float precision;
@@ -70,28 +71,18 @@ class ContoursAndPaths {
 			//std::cout<<"Lines association done! Size: "<<lines_association.size()<<std::endl;
 			if(lines_association.empty())
 				return false;
-			
-		/*new*/
 				//For each z will be new record in "contours"
 			std::map <float, std::map <int, Contour>>::iterator contours_iter;
-			contours_iter = contours.insert( std::make_pair(z,std::map<int, Contour>{}) );
-			
-		/*....*/
-		/*old	
-			std::multimap <float, std::vector<Contour>>::iterator contours_iter;
-			contours_iter = raw_contours.insert(std::make_pair(z, std::vector<Contour>{}) );
-		*/
-			
+			std::map <int, Contour> m1 = {};
+			contours_iter = contours.insert( std::pair <float, std::map <int, Contour>> (z, m1) ).first;
 			while(!lines_association.empty()){
-			/*new*/
-				contours_iter->second.insert(std::make_pair(Contour::last_ID, Contour(&lines_association, z)));
-				contours_iter->second.find(last_ID-1)->PrintContour();
-			
-			/*....*/
-			/*old
-				contours_iter->second.push_back(Contour(&lines_association, z));
-				contours_iter->second.rbegin()->PrintContour();
-			*/
+				contours_iter->second.insert(std::make_pair(Contour::GetLastID(), Contour(&lines_association, z)));
+				std::cout<<"ID = "<<Contour::GetLastID()<<std::endl;
+				//contours_iter->second.find(Contour::GetLastID()-1)->second.PrintContour();
+			}
+			for(auto it = contours.begin()->second.begin(); it != contours.begin()->second.end(); it++){
+				std::cout<<"Check ID "<<it->first<<std::endl;
+				it->second.PrintContour();
 			}
 			return true;
 		}
@@ -124,9 +115,7 @@ class ContoursAndPaths {
 			return true;
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
-		bool MakeEquidistantContours(float z_target, float dist, ){
-			
-		}
+
 };
 
 
