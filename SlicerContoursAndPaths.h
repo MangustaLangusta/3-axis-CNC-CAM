@@ -17,6 +17,7 @@ class Contour{
 		}
 		int GetID() { return ID; }
 		static int GetLastID() { return last_ID; }
+		float GetZ() { return z; }
 		void PrintContour(){
 			std::cout<<"Contour z = "<<z<<" ID = "<<ID<<std::endl;
 			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
@@ -48,7 +49,18 @@ class RawContour : public Contour{
 };
 
 class EquidistantContour : public Contour{
-	
+	private: 
+		long long parent_ID;
+		float distance;
+		bool side;
+	public: 
+		EquidistantContour(Contour *parent, bool init_side, float init_distance) {
+			parent_ID = parent->GetID();
+			z = parent->GetZ();
+			side = init_side;
+			distance = init_distance;
+			std::vector<Point2D>::iterator parent_waypoint;
+		}
 };
 
 class FieldContour : public Contour{
