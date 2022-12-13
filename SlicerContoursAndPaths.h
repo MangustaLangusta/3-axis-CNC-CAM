@@ -1,15 +1,20 @@
 #ifndef SLICER_CONTOURS_AND_PATHS_H
 #define SLICER_CONTOURS_AND_PATHS_H
 
+#define FIELD_WAYPOINTS { {-10, -10}, {-10, 110}, {110, 110}, {110, -10} }
+#define FIELD_HEIGHT 150
 
 
 class Contour{
 	protected:
-		int ID;
+		long long ID;
 		static long long last_ID;
 		std::vector<Point2D> waypoints;
 		float z;
 	public:
+		Contour(){
+			ID = last_ID++;					//update ID 
+		}
 		int GetID() { return ID; }
 		static int GetLastID() { return last_ID; }
 		void PrintContour(){
@@ -39,7 +44,6 @@ class RawContour : public Contour{
 				
 				{
 			*/
-			ID = last_ID++;					//update ID in the end
 		}
 };
 
@@ -48,7 +52,11 @@ class EquidistantContour : public Contour{
 };
 
 class FieldContour : public Contour{
-	
+	public:
+		FieldContour(){
+			waypoints = FIELD_WAYPOINTS;
+			z = FIELD_HEIGHT;
+		}
 };
 
 long long Contour::last_ID = 0;
