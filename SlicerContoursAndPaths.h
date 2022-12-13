@@ -4,14 +4,11 @@
 class Contour{
 	private:
 		int ID;
-		static int last_ID;
+		static long long last_ID;
 		std::vector<Point2D> waypoints;
 		float z;
 	public:
 		Contour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
-			//std::cout<<"Contour initialisation z = "<<z_plane<<std::endl;
-			
-			
 			z = z_plane;
 			std::multimap <Point2D, Point2D>::iterator lines_iter = lines_association->begin();
 			waypoints.push_back(lines_iter->first);
@@ -41,12 +38,16 @@ class Contour{
 
 class RawContour : public Contour{
 	
+	public:
+		
+	
 };
 
 class EquidistantContour : public Contour{
 	
 };
-int Contour::last_ID = 0;
+
+long long Contour::last_ID = 0;
 
 
 class Path {
