@@ -1,14 +1,28 @@
 #ifndef SLICER_CONTOURS_AND_PATHS_H
 #define SLICER_CONTOURS_AND_PATHS_H
 
+
+
 class Contour{
-	private:
+	protected:
 		int ID;
 		static long long last_ID;
 		std::vector<Point2D> waypoints;
 		float z;
 	public:
-		Contour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
+		int GetID() { return ID; }
+		static int GetLastID() { return last_ID; }
+		void PrintContour(){
+			std::cout<<"Contour z = "<<z<<" ID = "<<ID<<std::endl;
+			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
+				it->print_point();	
+		}
+};
+
+class RawContour : public Contour{
+	
+	public:
+		RawContour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
 			z = z_plane;
 			std::multimap <Point2D, Point2D>::iterator lines_iter = lines_association->begin();
 			waypoints.push_back(lines_iter->first);
@@ -27,23 +41,13 @@ class Contour{
 			*/
 			ID = last_ID++;					//update ID in the end
 		}
-		int GetID() { return ID; }
-		static int GetLastID() { return last_ID; }
-		void PrintContour(){
-			std::cout<<"Contour z = "<<z<<" ID = "<<ID<<std::endl;
-			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
-				it->print_point();	
-		}
-};
-
-class RawContour : public Contour{
-	
-	public:
-		
-	
 };
 
 class EquidistantContour : public Contour{
+	
+};
+
+class FieldContour : public Contour{
 	
 };
 
@@ -63,11 +67,11 @@ class Path {
 
 class ContoursAndPaths {
 	private:
+		static FieldContour field;																						//one field for all objects
+		std::map <float, std::map <long long, RawContour> > raw_contours;			//(float) z, (map (int) ID, (RawContour) contours) 
+		std::map <float, std::map <long long, EquidistantContour> > contours;
+		std::map <long long, std::vector<long long> > contours_tree;											//jerarhy between contours
 		
-		std::map <float, std::map <int, Contour> > contours;			//(float) z, (map (int) ID, (Contour) contours) all contours - raw and equidistant
-		
-		
-	//	std::multimap <float, std::vector<Contour> > raw_contours;	//каждому z соответствует свой набор контуров
 		float z_step_mm;
 		float z_offset_mm;
 		float precision;
@@ -81,13 +85,13 @@ class ContoursAndPaths {
 			if(lines_association.empty())
 				return false;
 				//For each z will be new record in "contours"
-			std::map <float, std::map <int, Contour>>::iterator contours_iter;
-			std::map <int, Contour> m1 = {};
-			contours_iter = contours.insert( std::pair <float, std::map <int, Contour>> (z, m1) ).first;
+			std::map <float, std::map <long long, RawContour>>::iterator contours_iter;
+			std::map <long long, RawContour> m1 = {};
+			contours_iter = raw_contours.insert( std::pair <float, std::map <long long, RawContour>> (z, m1) ).first;
 			while(!lines_association.empty()){
-				contours_iter->second.insert(std::make_pair(Contour::GetLastID(), Contour(&lines_association, z)));
+				contours_iter->second.insert(std::make_pair(Contour::GetLastID(), RawContour(&lines_association, z)));
 			}
-			for(auto it = contours.begin()->second.begin(); it != contours.begin()->second.end(); it++){
+			for(auto it = raw_contours.begin()->second.begin(); it != raw_contours.begin()->second.end(); it++){
 				it->second.PrintContour();
 			}
 			return true;
