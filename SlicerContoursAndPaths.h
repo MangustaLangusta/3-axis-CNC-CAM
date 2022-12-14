@@ -11,6 +11,7 @@ class Contour{
 		static long long last_ID;
 		std::vector<Point2D> waypoints;
 		float z;
+		bool loop;
 	public:
 		Contour(){
 			ID = last_ID++;					//update ID 
@@ -18,6 +19,8 @@ class Contour{
 		int GetID() { return ID; }
 		static int GetLastID() { return last_ID; }
 		float GetZ() { return z; }
+		bool IsLoop() { return loop; }
+		std::vector<Point2D> GetWaypoints() { return waypoints; }
 		void PrintContour(){
 			std::cout<<"Contour z = "<<z<<" ID = "<<ID<<std::endl;
 			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
@@ -37,14 +40,16 @@ class RawContour : public Contour{
 				lines_association->erase(lines_iter);
 				lines_iter = lines_association->find(*waypoints.rbegin());
 			}
-			if(waypoints[0] == waypoints[waypoints.size()-1])
+			if(waypoints[0] == waypoints[waypoints.size()-1]){
 				waypoints.pop_back();
+				loop = true;
+			}
 			/*
-				Вставить обработчик для случая, если контур незамкнут:
-				else{
-				
-				{
+				если контур незамкнут:
 			*/
+			else{
+				loop = false;
+			}
 		}
 };
 
@@ -57,9 +62,27 @@ class EquidistantContour : public Contour{
 		EquidistantContour(Contour *parent, bool init_side, float init_distance) {
 			parent_ID = parent->GetID();
 			z = parent->GetZ();
+			std::vector<Point2D> base_waypoints = parent->GetWaypoints();
 			side = init_side;
 			distance = init_distance;
-			std::vector<Point2D>::iterator parent_waypoint;
+			long wpts_amount = base_waypoints.size();
+			long target = 0;
+			long prev = wpts_amount - 1;
+			long next = 1;
+			do {
+				//0. Проверяем угол, который обводим (острый, тупой или развернутый). 
+				
+				// 1.1 Задаем линию ab (AB, смещенная в сторону side на расстояние distance)
+				
+				// 1.2 Задаем линию bv (BC, смещенная в сторону side на расстояние distance)
+				
+				// 2. 
+				
+				prev = target;
+				target = next;
+				next = (next + 1) % wpts_amount;
+			}while(target != 0);
+			
 		}
 };
 

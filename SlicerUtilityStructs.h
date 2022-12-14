@@ -45,6 +45,20 @@ struct Line2D{
 	}
 };
 
+struct Circle2D{
+	Point2D center;
+	float radius;
+	void print_circle(){
+		std::cout<<"center x = "<<center.x<<" y = "<<center.y<<" radius "<<radius<<std::endl;
+	}
+};
+
+Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
+	Point2D new_a, new_b;
+	
+	return (Line2D) {new_a, new_b};
+}
+
 DekartCoords VectorMult(DekartCoords v1, DekartCoords v2){
 	DekartCoords result;
 	result.x = v1.y * v2.z - v1.z * v2.y;
