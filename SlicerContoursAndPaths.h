@@ -137,6 +137,12 @@ class ContoursAndPaths {
 			for(auto it = raw_contours.begin()->second.begin(); it != raw_contours.begin()->second.end(); it++){
 				it->second.PrintContour();
 			}
+			
+			/*
+			Line2D test_line = { (Point2D) {0,0}, (Point2D) {0,10} };
+			Line2D equidist_test = DrawEquidistantLine(test_line, 10, true);
+			equidist_test.print_line();*/
+			
 			return true;
 		}
 ////////////////////////////////////////////////////////////////////////////////////////////

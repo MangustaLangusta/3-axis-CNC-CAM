@@ -55,13 +55,14 @@ struct Circle2D{
 
 Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
 	Point2D new_a, new_b;
+	int side_sign = side ? 1 : -1;
 	float dx = origin_line.b.x - origin_line.a.x;
 	float dy = origin_line.b.y - origin_line.a.y;
-	float ratio = dist / sqrt(sqr(dx) + sqr(dy));
-	
-	
-	cos90 dx + sin 90 dy = dx
-	cos90 dy - sin 90 dx = 
+	float ratio = dist / sqrt(dx*dx + dy*dy);
+	new_a.x = dy * ratio * side_sign;		//cos90 dx + sin90 dy
+	new_a.y = -dx * ratio * side_sign;	//cos90 dy - sin90 dx
+	new_b.x = new_a.x + dx;
+	new_b.y = new_a.y + dy;
 	return (Line2D) {new_a, new_b};
 }
 
