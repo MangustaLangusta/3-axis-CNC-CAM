@@ -40,6 +40,8 @@ struct Point2D{
 struct Line2D{
 	Point2D a;
 	Point2D b;
+	float GetDx(){ return (b.x - a.x); }
+	float GetDy(){ return (b.y - a.y); }
 	void print_line(){
 		std::cout<<a.x<<" "<<a.y<<" / "<<b.x<<" "<<b.y<<std::endl;
 	}
@@ -50,6 +52,20 @@ struct Circle2D{
 	float radius;
 	void print_circle(){
 		std::cout<<"center x = "<<center.x<<" y = "<<center.y<<" radius "<<radius<<std::endl;
+	}
+};
+
+struct Matrix2D{
+	float a1;
+	float a2;
+	float b1;
+	float b2;
+	float Det(){ return (a1 * b2 - a2 * b1); }
+	Matrix2D(Line2D line){	
+		a1 = line.a.x;
+		a2 = line.a.y;
+		b1 = line.b.x;
+		b2 = line.b.y;
 	}
 };
 
@@ -64,6 +80,10 @@ Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
 	new_b.x = new_a.x + dx;
 	new_b.y = new_a.y + dy;
 	return (Line2D) {new_a, new_b};
+}
+
+Point2D GetLines2DIntercept(Line2D line_a, Line2D line_b){
+	float dx = 
 }
 
 DekartCoords VectorMult(DekartCoords v1, DekartCoords v2){
