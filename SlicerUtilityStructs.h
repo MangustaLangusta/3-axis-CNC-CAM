@@ -42,6 +42,17 @@ struct Line2D{
 	Point2D b;
 	float GetDx(){ return (b.x - a.x); }
 	float GetDy(){ return (b.y - a.y); }
+	std::tuple<float, float, float> GetEquasionMembers() {
+		float Dx = GetDx();
+		float Dy = GetDy();
+		float member_a, member_b, member_c;
+		if (GetDx() == 0)
+			return (std::tuple <float, float, float> {1, 0, a.x});
+		if (GetDy() == 0)
+			return (std::tuple <float, float, float> {0, 1, a.y});
+		member_c = a.y - Dy / Dx * a.x;
+		
+	}
 	void print_line(){
 		std::cout<<a.x<<" "<<a.y<<" / "<<b.x<<" "<<b.y<<std::endl;
 	}
@@ -82,7 +93,7 @@ Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
 	return (Line2D) {new_a, new_b};
 }
 
-Point2D GetLines2DIntercept(Line2D line_a, Line2D line_b){
+Point2D SolveLines2DIntercept(Line2D line_a, Line2D line_b){
 	float dx = 
 }
 
