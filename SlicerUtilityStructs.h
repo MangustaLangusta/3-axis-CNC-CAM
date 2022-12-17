@@ -1,6 +1,13 @@
 #ifndef SLICER_UTILITY_STRUCTS_H
 #define SLICER_UTILITY_STRUCTS_H
 
+struct Point2D;
+struct Line2D;
+struct Circle2D;
+struct Matrix2D;
+
+bool SolveLines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, float, float> line_b, Point2D *result);
+
 struct DekartCoords{
 	float x;
 	float y;
@@ -42,16 +49,25 @@ struct Line2D{
 	Point2D b;
 	float GetDx(){ return (b.x - a.x); }
 	float GetDy(){ return (b.y - a.y); }
-	std::tuple<float, float, float> GetEquasionMembers() {
+	bool GetEquasionMembers(std::tuple<float, float, float> *equasion_members) {
 		float Dx = GetDx();
 		float Dy = GetDy();
-		float member_a, member_b, member_c;
-		if (GetDx() == 0)
-			return (std::tuple <float, float, float> {1, 0, a.x});
-		if (GetDy() == 0)
-			return (std::tuple <float, float, float> {0, 1, a.y});
+		float member_c;
+		if (GetDx() == 0){
+			*equasion_members = std::make_tuple(1, 0, a.x));
+			return true;
+		}
+		if (GetDy() == 0){
+			*equasion_members = std::make_tuple(0, 1, a.y);
+			return true;
+		}
 		member_c = a.y - Dy / Dx * a.x;
-		
+		Point2D ab_members;
+		if(SolveLines2DIntercept(std::make_tuple(a.x, a.y, member_c), std::make_tuple(b.x, b.y, member_c), &ab_members)){
+			*equasion_members = std::make_tuple(ab_members.a, ab_members.b, member_c);
+			return true; 
+		}
+		return false;
 	}
 	void print_line(){
 		std::cout<<a.x<<" "<<a.y<<" / "<<b.x<<" "<<b.y<<std::endl;
@@ -93,8 +109,17 @@ Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
 	return (Line2D) {new_a, new_b};
 }
 
-Point2D SolveLines2DIntercept(Line2D line_a, Line2D line_b){
-	float dx = 
+bool SolveLines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, float, float> line_b, Point2D *result){	//Cramer's method
+	Matrix2D delta = {std::get<0>(line_a), std::get<0>(line_b), 
+			  std::get<1>(line_a), std::get<1>(line_b)};
+	Matrix2D delta_x = {std::get<2>(line_a), std::get<2>(line_b), 
+			    std::get<1>(line_a), std::get<1>(line_b)};
+	Matrix2D delta_y = {std::get<0>(line_a), std::get<0>(line_b), 
+			    std::get<2>(line_a), std::get<2>(line_b)};
+	if(delta.Det()==0)
+		return false;
+	*result = {delta_x.Det() / delta.Det(), delta_y.Det() / delta.Det()};
+	return true;
 }
 
 DekartCoords VectorMult(DekartCoords v1, DekartCoords v2){
