@@ -49,25 +49,33 @@ struct Line2D{
 	Point2D b;
 	float GetDx(){ return (b.x - a.x); }
 	float GetDy(){ return (b.y - a.y); }
-	bool GetEquasionMembers(std::tuple<float, float, float> *equasion_members) {
+	bool GetEquasionMembers(std::tuple<float, float, float> &equasion_members) {
 		float Dx = GetDx();
 		float Dy = GetDy();
 		float member_c;
 		if (GetDx() == 0){
-			*equasion_members = std::make_tuple(1, 0, a.x));
+			equasion_members = std::make_tuple(1, 0, a.x);
 			return true;
 		}
 		if (GetDy() == 0){
-			*equasion_members = std::make_tuple(0, 1, a.y);
+			equasion_members = std::make_tuple(0, 1, a.y);
 			return true;
 		}
-		member_c = a.y - Dy / Dx * a.x;
+		member_c = Dy / Dx * a.x - a.y;
 		Point2D ab_members;
 		if(SolveLines2DIntercept(std::make_tuple(a.x, a.y, member_c), std::make_tuple(b.x, b.y, member_c), &ab_members)){
-			*equasion_members = std::make_tuple(ab_members.a, ab_members.b, member_c);
+			equasion_members = std::make_tuple(ab_members.x, ab_members.y, member_c);
 			return true; 
 		}
 		return false;
+	}
+	bool GetNormal(Point2D &normal){
+		std::tuple<float,float,float> eq;
+		if(GetEquasionMembers(eq))
+			normal = {std::get<0>(eq), std::get<1>(eq)};
+		else 
+			return false;
+		return true;
 	}
 	void print_line(){
 		std::cout<<a.x<<" "<<a.y<<" / "<<b.x<<" "<<b.y<<std::endl;
@@ -94,6 +102,12 @@ struct Matrix2D{
 		b1 = line.b.x;
 		b2 = line.b.y;
 	}
+	Matrix2D(float new_a1, float new_a2, float new_b1, float new_b2){
+		a1 = new_a1;
+		a2 = new_a2; 
+		b1 = new_b1;
+		b2 = new_b2;
+	}
 };
 
 Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
@@ -110,12 +124,12 @@ Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
 }
 
 bool SolveLines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, float, float> line_b, Point2D *result){	//Cramer's method
-	Matrix2D delta = {std::get<0>(line_a), std::get<0>(line_b), 
-			  std::get<1>(line_a), std::get<1>(line_b)};
-	Matrix2D delta_x = {std::get<2>(line_a), std::get<2>(line_b), 
-			    std::get<1>(line_a), std::get<1>(line_b)};
-	Matrix2D delta_y = {std::get<0>(line_a), std::get<0>(line_b), 
-			    std::get<2>(line_a), std::get<2>(line_b)};
+	Matrix2D delta(	std::get<0>(line_a), std::get<0>(line_b), 
+									std::get<1>(line_a), std::get<1>(line_b));
+	Matrix2D delta_x(	std::get<2>(line_a), std::get<2>(line_b), 
+										std::get<1>(line_a), std::get<1>(line_b));
+	Matrix2D delta_y(	std::get<0>(line_a), std::get<0>(line_b), 
+										std::get<2>(line_a), std::get<2>(line_b));
 	if(delta.Det()==0)
 		return false;
 	*result = {delta_x.Det() / delta.Det(), delta_y.Det() / delta.Det()};
