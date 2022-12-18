@@ -69,18 +69,35 @@ class EquidistantContour : public Contour{
 			long target = 0;
 			long prev = wpts_amount - 1;
 			long next = 1;
+			Line2D base_line_a = {base_waypoints[prev], base_waypoints[target]};
+			Line2D base_line_b = {base_waypoints[target], base_waypoints[next]};
+			Line2D equidist_line_a = DrawEquidistantLine(base_line_a, distance, side);
+			Line2D equidist_line_b = DrawEquidistantLine(base_line_b, distance, side);
+			Line2D bissectris, bissectris_normal;
+			Point2D equidist_lines_intercept, bissectris_intercept, bissectris_normal_b, wpt_a, wpt_b;
+			float ratio;
 			do {
 				//0. Проверяем угол, который обводим (острый, тупой или развернутый). 
-				
-				// 1.1 Задаем линию ab (AB, смещенная в сторону side на расстояние distance)
-				
-				// 1.2 Задаем линию bv (BC, смещенная в сторону side на расстояние distance)
-				
-				// 2. 
-				
+				if(Lines2DIntercept(equidist_line_a, equidist_line_b, &equidist_lines_intercept)){
+					bissectris = {base_waypoints[target], equidist_lines_intercept};
+					ratio = distance / bissectris.GetLength();
+					bissectris_intercept = {base_waypoints[target].x + bissectris.GetDx() * ratio, 
+																	base_waypoints[target].y + bissectris.GetDy() * ratio};
+					bissectris.GetNormal(bissectris_normal_b);
+					bissectris_normal_b.x += bissectris_intercept.x;
+					bissectris_normal_b.y += bissectris_intercept.y;
+					bissectris_normal = {bissectris_intercept, bissectris_normal_b};
+					if(Lines2DIntercept(equidist_line_a, bissectris_normal, &wpt_a))
+						waypoints.push_back(wpt_a);
+					if(Lines2DIntercept(bissectris_normal, equidist_line_b, &wpt_b))
+						waypoints.push_back(wpt_b);
+				}							
 				prev = target;
 				target = next;
 				next = (next + 1) % wpts_amount;
+				base_line_b = {base_waypoints[target], base_waypoints[next]};
+				equidist_line_a = equidist_line_b;
+				equidist_line_b = DrawEquidistantLine(base_line_b, distance, side);
 			}while(target != 0);
 			
 		}
