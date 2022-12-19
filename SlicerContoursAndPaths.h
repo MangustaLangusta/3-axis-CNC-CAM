@@ -78,7 +78,7 @@ class EquidistantContour : public Contour{
 			float ratio;
 			do {
 				//0. Проверяем угол, который обводим (острый, тупой или развернутый). 
-				if(Lines2DIntercept(equidist_line_a, equidist_line_b, &equidist_lines_intercept)){
+				if(Lines2DIntercept(equidist_line_a, equidist_line_b, equidist_lines_intercept)){
 					bissectris = {base_waypoints[target], equidist_lines_intercept};
 					ratio = distance / bissectris.GetLength();
 					bissectris_intercept = {base_waypoints[target].x + bissectris.GetDx() * ratio, 
@@ -87,9 +87,9 @@ class EquidistantContour : public Contour{
 					bissectris_normal_b.x += bissectris_intercept.x;
 					bissectris_normal_b.y += bissectris_intercept.y;
 					bissectris_normal = {bissectris_intercept, bissectris_normal_b};
-					if(Lines2DIntercept(equidist_line_a, bissectris_normal, &wpt_a))
+					if(Lines2DIntercept(equidist_line_a, bissectris_normal, wpt_a))
 						waypoints.push_back(wpt_a);
-					if(Lines2DIntercept(bissectris_normal, equidist_line_b, &wpt_b))
+					if(Lines2DIntercept(bissectris_normal, equidist_line_b, wpt_b))
 						waypoints.push_back(wpt_b);
 				}							
 				prev = target;
@@ -99,7 +99,6 @@ class EquidistantContour : public Contour{
 				equidist_line_a = equidist_line_b;
 				equidist_line_b = DrawEquidistantLine(base_line_b, distance, side);
 			}while(target != 0);
-			
 		}
 };
 

@@ -6,7 +6,9 @@ struct Line2D;
 struct Circle2D;
 struct Matrix2D;
 
-bool SolveLines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, float, float> line_b, Point2D *result);
+bool Lines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, float, float> line_b, Point2D &result);
+bool Lines2DIntercept(Line2D line_a, Line2D line_b, Point2D &intercept);
+
 
 struct DekartCoords{
 	float x;
@@ -49,6 +51,7 @@ struct Line2D{
 	Point2D b;
 	float GetDx(){ return (b.x - a.x); }
 	float GetDy(){ return (b.y - a.y); }
+	float GetLength() { return sqrt( GetDx() * GetDx() + GetDy() * GetDy()); }
 	bool GetEquasionMembers(std::tuple<float, float, float> &equasion_members) {
 		float Dx = GetDx();
 		float Dy = GetDy();
@@ -63,7 +66,7 @@ struct Line2D{
 		}
 		member_c = Dy / Dx * a.x - a.y;
 		Point2D ab_members;
-		if(SolveLines2DIntercept(std::make_tuple(a.x, a.y, member_c), std::make_tuple(b.x, b.y, member_c), &ab_members)){
+		if(Lines2DIntercept(std::make_tuple(a.x, a.y, member_c), std::make_tuple(b.x, b.y, member_c), ab_members)){
 			equasion_members = std::make_tuple(ab_members.x, ab_members.y, member_c);
 			return true; 
 		}
@@ -123,7 +126,7 @@ Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
 	return (Line2D) {new_a, new_b};
 }
 
-bool SolveLines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, float, float> line_b, Point2D *result){	//Cramer's method
+bool Lines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, float, float> line_b, Point2D &result){	//Cramer's method
 	Matrix2D delta(	std::get<0>(line_a), std::get<0>(line_b), 
 									std::get<1>(line_a), std::get<1>(line_b));
 	Matrix2D delta_x(	std::get<2>(line_a), std::get<2>(line_b), 
@@ -132,8 +135,17 @@ bool SolveLines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<fl
 										std::get<2>(line_a), std::get<2>(line_b));
 	if(delta.Det()==0)
 		return false;
-	*result = {delta_x.Det() / delta.Det(), delta_y.Det() / delta.Det()};
+	result = {delta_x.Det() / delta.Det(), delta_y.Det() / delta.Det()};
 	return true;
+}
+
+bool Lines2DIntercept(Line2D line_a, Line2D line_b, Point2D &intercept){
+	std::tuple<float, float, float> equasion_a, equasion_b;
+	if (line_a.GetEquasionMembers(equasion_a) && line_b.GetEquasionMembers(equasion_b)){
+		if(Lines2DIntercept(equasion_a, equasion_b, intercept))
+			return true;
+	}
+	return false;
 }
 
 DekartCoords VectorMult(DekartCoords v1, DekartCoords v2){
