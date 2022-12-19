@@ -29,7 +29,6 @@ class Contour{
 };
 
 class RawContour : public Contour{
-	
 	public:
 		RawContour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
 			z = z_plane;
@@ -108,6 +107,11 @@ class FieldContour : public Contour{
 			waypoints = FIELD_WAYPOINTS;
 			z = FIELD_HEIGHT;
 		}
+};
+
+class SweepContour : public Contour{
+	public:
+		
 };
 
 long long Contour::last_ID = 0;
@@ -190,7 +194,16 @@ class ContoursAndPaths {
 			return true;
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
-		bool MakeEquidistantContours(){
+		bool MakeEquidistantContours(float distance){
+			std::map <float, std::map <long long, EquidistantContour>>::iterator contours_iter;
+			std::map <long long, EquidistantContour> eq_cont = {};
+			float z;
+			for(auto it_z = raw_contours.begin(); it_z != raw_contours.end(); it_z++){
+				z = it_z->first;
+				for(auto it_id = it_z->begin(); it_id != it_z->end(); it_id++){
+					contours_iter = contours.insert( std::pair <float, std::map <long long, EquidistantContour>> (z, eq_cont) ).first;
+				}
+			}
 			return true;
 		}
 };
