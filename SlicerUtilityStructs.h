@@ -1,6 +1,11 @@
 #ifndef SLICER_UTILITY_STRUCTS_H
 #define SLICER_UTILITY_STRUCTS_H
 
+enum ContourType { field, raw, equidistant, sweep };
+enum OffsetSide { not_defined, left, right };
+typedef long long id;
+typedef float Offset;
+
 struct Point2D;
 struct Line2D;
 struct Circle2D;
@@ -113,9 +118,9 @@ struct Matrix2D{
 	}
 };
 
-Line2D DrawEquidistantLine(Line2D origin_line, float dist, bool side){
+Line2D DrawEquidistantLine(Line2D origin_line, Offset dist, OffsetSide side){
 	Point2D new_a, new_b;
-	int side_sign = side ? 1 : -1;
+	int side_sign = (side == left) ? -1 : 1;
 	float dx = origin_line.b.x - origin_line.a.x;
 	float dy = origin_line.b.y - origin_line.a.y;
 	float ratio = dist / sqrt(dx*dx + dy*dy);

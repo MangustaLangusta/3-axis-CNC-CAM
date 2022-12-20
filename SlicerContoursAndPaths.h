@@ -4,34 +4,23 @@
 #define FIELD_WAYPOINTS { {-10, -10}, {-10, 110}, {110, 110}, {110, -10} }
 #define FIELD_HEIGHT 150
 
-
 class Contour{
-	protected:
-		long long ID;
-		static long long last_ID;
+	private:
+		id ID;
+		id parent_ID = 0;
+		static id next_ID;
+		ContourType type;
 		std::vector<Point2D> waypoints;
 		float z;
 		bool loop;
+		Offset offset = 0;
+		OffsetSide side = not_defined;
 	public:
-		Contour(){
-			ID = last_ID++;					//update ID 
-		}
-		int GetID() { return ID; }
-		static int GetLastID() { return last_ID; }
-		float GetZ() { return z; }
-		bool IsLoop() { return loop; }
-		std::vector<Point2D> GetWaypoints() { return waypoints; }
-		void PrintContour(){
-			std::cout<<"Contour z = "<<z<<" ID = "<<ID<<std::endl;
-			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
-				it->print_point();	
-		}
-};
-
-class RawContour : public Contour{
-	public:
-		RawContour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
+		//raw contour
+		Contour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
+			ID = next_ID++;					//update ID 
 			z = z_plane;
+			type = raw;
 			std::multimap <Point2D, Point2D>::iterator lines_iter = lines_association->begin();
 			waypoints.push_back(lines_iter->first);
 			while(lines_iter != lines_association->end()){
@@ -50,28 +39,22 @@ class RawContour : public Contour{
 				loop = false;
 			}
 		}
-};
-
-class EquidistantContour : public Contour{
-	private: 
-		long long parent_ID;
-		float distance;
-		bool side;
-	public: 
-		EquidistantContour(Contour *parent, bool init_side, float init_distance) {
+		//equidistant contour
+		Contour(Contour *parent, OffsetSide init_side, Offset init_offset){
+			ID = next_ID++;					//update ID 
 			parent_ID = parent->GetID();
 			z = parent->GetZ();
 			std::vector<Point2D> base_waypoints = parent->GetWaypoints();
 			side = init_side;
-			distance = init_distance;
+			offset = init_offset;
 			long wpts_amount = base_waypoints.size();
 			long target = 0;
 			long prev = wpts_amount - 1;
 			long next = 1;
 			Line2D base_line_a = {base_waypoints[prev], base_waypoints[target]};
 			Line2D base_line_b = {base_waypoints[target], base_waypoints[next]};
-			Line2D equidist_line_a = DrawEquidistantLine(base_line_a, distance, side);
-			Line2D equidist_line_b = DrawEquidistantLine(base_line_b, distance, side);
+			Line2D equidist_line_a = DrawEquidistantLine(base_line_a, offset, side);
+			Line2D equidist_line_b = DrawEquidistantLine(base_line_b, offset, side);
 			Line2D bissectris, bissectris_normal;
 			Point2D equidist_lines_intercept, bissectris_intercept, bissectris_normal_b, wpt_a, wpt_b;
 			float ratio;
@@ -96,25 +79,43 @@ class EquidistantContour : public Contour{
 				next = (next + 1) % wpts_amount;
 				base_line_b = {base_waypoints[target], base_waypoints[next]};
 				equidist_line_a = equidist_line_b;
-				equidist_line_b = DrawEquidistantLine(base_line_b, distance, side);
-			}while(target != 0);
+				equidist_line_b = DrawEquidistantLine(base_line_b, offset, side);
+			}while(target != 0);			
+		}
+		//field contour
+		Contour(ContourType new_type, waypoints wtps, float height){
+			if (new_type == field){
+				ID = 0;
+				type = field;
+				waypoints = FIELD_WAYPOINTS;
+				z = FIELD_HEIGHT;
+			}
+			else
+				std::cout<<"WRONG CONSTRUCTOR OF CONTOUR CLASS (FIELD)"<<std::endl;
+		}
+		//sweep contour
+		Contour(ContourType new_type){
+			if (new_type == sweep){
+				ID = next_ID++;
+				type = sweep;
+			}
+			else
+				std::cout<<"WRONG CONSTRUCTOR OF CONTOUR CLASS (SWEEP)"<<std::endl;
+		}
+		id GetID() { return ID; }
+		ContourType GetType() { return type; }
+		static id GetNextID() { return next_ID; }
+		float GetZ() { return z; }
+		bool IsLoop() { return loop; }
+		std::vector<Point2D> GetWaypoints() { return waypoints; }
+		void PrintContour(){
+			std::cout<<"Contour z = "<<z<<" ID = "<<ID<<std::endl;
+			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
+				it->print_point();	
 		}
 };
 
-class FieldContour : public Contour{
-	public:
-		FieldContour(){
-			waypoints = FIELD_WAYPOINTS;
-			z = FIELD_HEIGHT;
-		}
-};
-
-class SweepContour : public Contour{
-	public:
-		
-};
-
-long long Contour::last_ID = 0;
+id Contour::next_ID = 1;
 
 
 class Path {
@@ -130,10 +131,12 @@ class Path {
 
 class ContoursAndPaths {
 	private:
-		static FieldContour field;																						//one field for all objects
-		std::map <float, std::map <long long, RawContour> > raw_contours;			//(float) z, (map (int) ID, (RawContour) contours) 
-		std::map <float, std::map <long long, EquidistantContour> > contours;
-		std::map <long long, std::vector<long long> > contours_tree;											//jerarhy between contours
+		Contour field(field, FIELD_WAYPOINTS, FIELD_HEIGHT);						//one field for all objects
+		std::map<id, Contour> all_contours;															//all contours are stored here
+		std::vector<id> raw_contours;																		//all IDs of raw contours 
+		std::vector<id> equidistant_contours;														//all IDs of equidistant contours
+		std::map<id, std::vector<id>> contours_tree;										//jerarhy between contours
+		std::map<float, std::vector<id>> contours_by_z;									//IDs sorted by z-coordinate
 		
 		float z_step_mm;
 		float z_offset_mm;
@@ -152,17 +155,13 @@ class ContoursAndPaths {
 			std::map <long long, RawContour> m1 = {};
 			contours_iter = raw_contours.insert( std::pair <float, std::map <long long, RawContour>> (z, m1) ).first;
 			while(!lines_association.empty()){
-				contours_iter->second.insert(std::make_pair(Contour::GetLastID(), RawContour(&lines_association, z)));
+				all_contours.insert( std::make_pair(Contour::GetNextID(), Contour(&lines_association, z)) );
+				
+				//contours_iter->second.insert(std::make_pair(Contour::GetLastID(), RawContour(&lines_association, z)));
 			}
 			for(auto it = raw_contours.begin()->second.begin(); it != raw_contours.begin()->second.end(); it++){
 				it->second.PrintContour();
-			}
-			
-			/*
-			Line2D test_line = { (Point2D) {0,0}, (Point2D) {0,10} };
-			Line2D equidist_test = DrawEquidistantLine(test_line, 10, true);
-			equidist_test.print_line();*/
-			
+			}			
 			return true;
 		}
 ////////////////////////////////////////////////////////////////////////////////////////////
