@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cmath>
 #include <vector>
+#include <set>
 #include <algorithm>
 #include <map>
 #include "SlicerUtilityStructs.h"
@@ -159,6 +160,7 @@ void CreateGCode(std::string input_file_name){
 	contours_and_paths.SetPrecision(0.01);
 	CreateFacetsVector(input_file_name, &facets_set);
 	contours_and_paths.MakeRawContours(&facets_set);
+	contours_and_paths.MakeEquidistantContours(10, right, contours_and_paths.GetAllRawContoursIDs());
 }
 
 

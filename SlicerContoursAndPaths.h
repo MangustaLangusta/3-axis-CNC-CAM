@@ -40,13 +40,15 @@ class Contour{
 			}
 		}
 		//equidistant contour
-		Contour(Contour *parent, OffsetSide init_side, Offset init_offset){
+		Contour(Contour* parent, OffsetSide init_side, Offset init_offset, id &assigned_ID, float &z_plane){
 			ID = next_ID++;					//update ID 
 			parent_ID = parent->GetID();
 			z = parent->GetZ();
 			std::vector<Point2D> base_waypoints = parent->GetWaypoints();
 			side = init_side;
 			offset = init_offset;
+			assigned_ID = ID;
+			z_plane = z;
 			long wpts_amount = base_waypoints.size();
 			long target = 0;
 			long prev = wpts_amount - 1;
@@ -62,7 +64,7 @@ class Contour{
 				//0. Проверяем угол, который обводим (острый, тупой или развернутый). 
 				if(Lines2DIntercept(equidist_line_a, equidist_line_b, equidist_lines_intercept)){
 					bissectris = {base_waypoints[target], equidist_lines_intercept};
-					ratio = distance / bissectris.GetLength();
+					ratio = offset / bissectris.GetLength();
 					bissectris_intercept = {base_waypoints[target].x + bissectris.GetDx() * ratio, 
 																	base_waypoints[target].y + bissectris.GetDy() * ratio};
 					bissectris.GetNormal(bissectris_normal_b);
@@ -83,7 +85,7 @@ class Contour{
 			}while(target != 0);			
 		}
 		//field contour
-		Contour(ContourType new_type, waypoints wtps, float height){
+		Contour(ContourType new_type, std::vector<Point2D> wtps, float height){
 			if (new_type == field){
 				ID = 0;
 				type = field;
@@ -131,17 +133,30 @@ class Path {
 
 class ContoursAndPaths {
 	private:
-		Contour field(field, FIELD_WAYPOINTS, FIELD_HEIGHT);						//one field for all objects
+		//Contour field(field, FIELD_WAYPOINTS, FIELD_HEIGHT);						//one field for all objects
 		std::map<id, Contour> all_contours;															//all contours are stored here
-		std::vector<id> raw_contours;																		//all IDs of raw contours 
-		std::vector<id> equidistant_contours;														//all IDs of equidistant contours
-		std::map<id, std::vector<id>> contours_tree;										//jerarhy between contours
-		std::map<float, std::vector<id>> contours_by_z;									//IDs sorted by z-coordinate
+		std::set<id> raw_contours;																		//all IDs of raw contours 
+		std::set<id> equidistant_contours;														//all IDs of equidistant contours
+		std::map<id, std::set<id>> contours_tree;										//jerarhy between contours
+		std::map<float, std::set<id>> contours_by_z;									//IDs sorted by z-coordinate
 		
 		float z_step_mm;
 		float z_offset_mm;
 		float precision;
 ////////////////////////////////////////////////////////////////////////////////////////////
+		Contour* GetContourByID(id request){
+			auto it = all_contours.find(request);
+			if (it != all_contours.end())
+				return &(it->second);
+			else 
+				return NULL;
+		}
+		void PrintContour(id request){
+			if (GetContourByID(request))
+				GetContourByID(request)->PrintContour();
+			else 
+				std::cout<<"Attempt to print contour with ID "<<request<<" failed: Contour does not exist"<<std::endl;
+		}
 		bool ExtractRawContoursFromLinesSet(std::vector<Line2D> *lines_set, float z){
 			std::multimap <Point2D, Point2D> lines_association;
 			for(auto it = lines_set->begin(); it != lines_set->end(); it++){
@@ -150,18 +165,17 @@ class ContoursAndPaths {
 			//std::cout<<"Lines association done! Size: "<<lines_association.size()<<std::endl;
 			if(lines_association.empty())
 				return false;
-				//For each z will be new record in "contours"
-			std::map <float, std::map <long long, RawContour>>::iterator contours_iter;
-			std::map <long long, RawContour> m1 = {};
-			contours_iter = raw_contours.insert( std::pair <float, std::map <long long, RawContour>> (z, m1) ).first;
+			id tmp_ID;
+			std::map<float, std::set<id>>::iterator it_z = contours_by_z.find(z);
+			if (it_z == contours_by_z.end())
+				it_z = contours_by_z.insert( std::make_pair(z, std::set<id>{}) ).first;
 			while(!lines_association.empty()){
-				all_contours.insert( std::make_pair(Contour::GetNextID(), Contour(&lines_association, z)) );
-				
-				//contours_iter->second.insert(std::make_pair(Contour::GetLastID(), RawContour(&lines_association, z)));
+				tmp_ID = Contour::GetNextID();
+				all_contours.emplace( std::make_pair(tmp_ID, Contour(&lines_association, z)) );
+				raw_contours.insert(tmp_ID);
+				it_z->second.insert(tmp_ID);
+				PrintContour(tmp_ID);
 			}
-			for(auto it = raw_contours.begin()->second.begin(); it != raw_contours.begin()->second.end(); it++){
-				it->second.PrintContour();
-			}			
 			return true;
 		}
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,6 +183,8 @@ class ContoursAndPaths {
 		void SetZStep(float new_z_step_mm) { z_step_mm = new_z_step_mm; }
 		void SetZOffset(float new_z_offset_mm) { z_offset_mm = new_z_offset_mm; }
 		void SetPrecision(float new_precision_mm) { precision = new_precision_mm; }
+		
+		std::set<id> GetAllRawContoursIDs() { return raw_contours; }
 ///////////////////////////////////////////////////////////////////////////////////////////
 		bool MakeRawContours(FacetsSet *facets_set){
 			std::vector<Line2D> lines_set;
@@ -193,16 +209,18 @@ class ContoursAndPaths {
 			return true;
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
-		bool MakeEquidistantContours(float distance){
-			std::map <float, std::map <long long, EquidistantContour>>::iterator contours_iter;
-			std::map <long long, EquidistantContour> eq_cont = {};
-			float z;
-			for(auto it_z = raw_contours.begin(); it_z != raw_contours.end(); it_z++){
-				z = it_z->first;
-				for(auto it_id = it_z->begin(); it_id != it_z->end(); it_id++){
-					contours_iter = contours.insert( std::pair <float, std::map <long long, EquidistantContour>> (z, eq_cont) ).first;
-				}
+		bool MakeEquidistantContours(Offset offset, OffsetSide off_side, std::set<id> request_ids){
+			std::cout<<"Making euidistant contours.."<<std::endl;
+			/*
+			id tmp_ID;
+			float tmp_z;
+			Contour *parent_contour;
+			for (auto it = request_ids.begin(); it != reqiest_ids.end(); it++){
+				parent_contour = 
+				
 			}
+			*/
+			std::cout<<"Equidistant contours done!"<<std::endl;
 			return true;
 		}
 };
