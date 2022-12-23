@@ -14,7 +14,6 @@ class Contour{
 		float z;
 		bool loop;
 		Offset offset = 0;
-		OffsetSide side = not_defined;
 	public:
 		//raw contour
 		Contour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
@@ -40,14 +39,12 @@ class Contour{
 			}
 		}
 		//equidistant contour
-		Contour(Contour* parent, OffsetSide init_side, Offset init_offset, id &assigned_ID, float &z_plane){
+		Contour(Contour* parent, Offset init_offset, float &z_plane){
 			ID = next_ID++;					//update ID 
 			parent_ID = parent->GetID();
 			z = parent->GetZ();
 			std::vector<Point2D> base_waypoints = parent->GetWaypoints();
-			side = init_side;
 			offset = init_offset;
-			assigned_ID = ID;
 			z_plane = z;
 			long wpts_amount = base_waypoints.size();
 			long target = 0;
@@ -55,33 +52,39 @@ class Contour{
 			long next = 1;
 			Line2D base_line_a = {base_waypoints[prev], base_waypoints[target]};
 			Line2D base_line_b = {base_waypoints[target], base_waypoints[next]};
-			Line2D equidist_line_a = DrawEquidistantLine(base_line_a, offset, side);
-			Line2D equidist_line_b = DrawEquidistantLine(base_line_b, offset, side);
+			Line2D equidist_line_a = DrawEquidistantLine(base_line_a, offset);
+			Line2D equidist_line_b = DrawEquidistantLine(base_line_b, offset);
 			Line2D bissectris, bissectris_normal;
 			Point2D equidist_lines_intercept, bissectris_intercept, bissectris_normal_b, wpt_a, wpt_b;
 			float ratio;
+			AngleType angle_type;
 			do {
 				//0. Проверяем угол, который обводим (острый, тупой или развернутый). 
-				if(Lines2DIntercept(equidist_line_a, equidist_line_b, equidist_lines_intercept)){
-					bissectris = {base_waypoints[target], equidist_lines_intercept};
-					ratio = offset / bissectris.GetLength();
-					bissectris_intercept = {base_waypoints[target].x + bissectris.GetDx() * ratio, 
-																	base_waypoints[target].y + bissectris.GetDy() * ratio};
-					bissectris.GetNormal(bissectris_normal_b);
-					bissectris_normal_b.x += bissectris_intercept.x;
-					bissectris_normal_b.y += bissectris_intercept.y;
-					bissectris_normal = {bissectris_intercept, bissectris_normal_b};
-					if(Lines2DIntercept(equidist_line_a, bissectris_normal, wpt_a))
-						waypoints.push_back(wpt_a);
-					if(Lines2DIntercept(bissectris_normal, equidist_line_b, wpt_b))
-						waypoints.push_back(wpt_b);
+				angle_type = CheckAngleType(equidist_line_a, equidist_line_b);
+				if((angle_type != developed) && Lines2DIntercept(equidist_line_a, equidist_line_b, equidist_lines_intercept)){
+					if (angle_type == sharp)
+						waypoints.push_back(equidist_lines_intercept);
+					else {
+						bissectris = {base_waypoints[target], equidist_lines_intercept};
+						ratio = offset / bissectris.GetLength();
+						bissectris_intercept = {base_waypoints[target].x + bissectris.GetDx() * ratio, 
+																		base_waypoints[target].y + bissectris.GetDy() * ratio};
+						bissectris.GetNormal(bissectris_normal_b);
+						bissectris_normal_b.x += bissectris_intercept.x;
+						bissectris_normal_b.y += bissectris_intercept.y;
+						bissectris_normal = {bissectris_intercept, bissectris_normal_b};
+						if(Lines2DIntercept(equidist_line_a, bissectris_normal, wpt_a))
+							waypoints.push_back(wpt_a);
+						if(Lines2DIntercept(bissectris_normal, equidist_line_b, wpt_b))
+							waypoints.push_back(wpt_b);
+					}
 				}							
 				prev = target;
 				target = next;
 				next = (next + 1) % wpts_amount;
 				base_line_b = {base_waypoints[target], base_waypoints[next]};
 				equidist_line_a = equidist_line_b;
-				equidist_line_b = DrawEquidistantLine(base_line_b, offset, side);
+				equidist_line_b = DrawEquidistantLine(base_line_b, offset);
 			}while(target != 0);			
 		}
 		//field contour
@@ -157,6 +160,13 @@ class ContoursAndPaths {
 			else 
 				std::cout<<"Attempt to print contour with ID "<<request<<" failed: Contour does not exist"<<std::endl;
 		}
+		void AddToContoursByZ(float z, id ID){
+			std::map<float, std::set<id>>::iterator it_z = contours_by_z.find(z);
+			if (it_z == contours_by_z.end())
+				it_z = contours_by_z.insert( std::make_pair(z, std::set<id>{ID}) ).first;
+			else
+				it_z->second.insert(ID);
+		}
 		bool ExtractRawContoursFromLinesSet(std::vector<Line2D> *lines_set, float z){
 			std::multimap <Point2D, Point2D> lines_association;
 			for(auto it = lines_set->begin(); it != lines_set->end(); it++){
@@ -166,15 +176,12 @@ class ContoursAndPaths {
 			if(lines_association.empty())
 				return false;
 			id tmp_ID;
-			std::map<float, std::set<id>>::iterator it_z = contours_by_z.find(z);
-			if (it_z == contours_by_z.end())
-				it_z = contours_by_z.insert( std::make_pair(z, std::set<id>{}) ).first;
 			while(!lines_association.empty()){
 				tmp_ID = Contour::GetNextID();
 				all_contours.emplace( std::make_pair(tmp_ID, Contour(&lines_association, z)) );
 				raw_contours.insert(tmp_ID);
-				it_z->second.insert(tmp_ID);
-				PrintContour(tmp_ID);
+				AddToContoursByZ(z, tmp_ID);
+				//PrintContour(tmp_ID);
 			}
 			return true;
 		}
@@ -206,20 +213,23 @@ class ContoursAndPaths {
 					ExtractRawContoursFromLinesSet(&lines_set, z);														//now we convet set of lines into contours 
 				}
 			}
+			std::cout<<"Raw contours extracted"<<std::endl;
 			return true;
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
-		bool MakeEquidistantContours(Offset offset, OffsetSide off_side, std::set<id> request_ids){
+		bool MakeEquidistantContours(Offset offset, std::set<id> request_ids){
 			std::cout<<"Making euidistant contours.."<<std::endl;
-			/*
 			id tmp_ID;
 			float tmp_z;
 			Contour *parent_contour;
-			for (auto it = request_ids.begin(); it != reqiest_ids.end(); it++){
-				parent_contour = 
-				
+			for (auto it = request_ids.begin(); it != request_ids.end(); it++){
+				parent_contour = GetContourByID(*it);
+				tmp_ID = Contour::GetNextID();
+				all_contours.emplace( std::make_pair(tmp_ID, Contour(parent_contour, offset, tmp_z)) );
+				equidistant_contours.insert(tmp_ID);
+				AddToContoursByZ(tmp_z, tmp_ID);
+				PrintContour(tmp_ID);
 			}
-			*/
 			std::cout<<"Equidistant contours done!"<<std::endl;
 			return true;
 		}

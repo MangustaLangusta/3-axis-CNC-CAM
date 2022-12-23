@@ -2,7 +2,7 @@
 #define SLICER_UTILITY_STRUCTS_H
 
 enum ContourType { field, raw, equidistant, sweep };
-enum OffsetSide { not_defined, left, right };
+enum AngleType { obtuse, sharp, developed };
 typedef long long id;
 typedef float Offset;
 
@@ -57,33 +57,51 @@ struct Line2D{
 	float GetDx(){ return (b.x - a.x); }
 	float GetDy(){ return (b.y - a.y); }
 	float GetLength() { return sqrt( GetDx() * GetDx() + GetDy() * GetDy()); }
-	bool GetEquasionMembers(std::tuple<float, float, float> &equasion_members) {
+	bool GetNormal(Point2D &normal){
 		float Dx = GetDx();
 		float Dy = GetDy();
-		float member_c;
-		if (GetDx() == 0){
-			equasion_members = std::make_tuple(1, 0, a.x);
-			return true;
+		float len = GetLength();
+		if((Dx == 0) && (Dy == 0)){
+			std::cout<<"Cannot find normal due to Dx = Dy"<<std::endl;
+			return false;
 		}
-		if (GetDy() == 0){
-			equasion_members = std::make_tuple(0, 1, a.y);
-			return true;
-		}
-		member_c = Dy / Dx * a.x - a.y;
-		Point2D ab_members;
-		if(Lines2DIntercept(std::make_tuple(a.x, a.y, member_c), std::make_tuple(b.x, b.y, member_c), ab_members)){
-			equasion_members = std::make_tuple(ab_members.x, ab_members.y, member_c);
-			return true; 
-		}
-		return false;
-	}
-	bool GetNormal(Point2D &normal){
+		normal.x = Dy / len;		//cos90 dx + sin90 dy
+		normal.y = -Dx / len;		//cos90 dy - sin90 dx
+		/*
 		std::tuple<float,float,float> eq;
 		if(GetEquasionMembers(eq))
 			normal = {std::get<0>(eq), std::get<1>(eq)};
 		else 
 			return false;
+		*/
 		return true;
+	}
+	bool GetEquasionMembers(std::tuple<float, float, float> &equasion_members) {
+		float Dx = GetDx();
+		float Dy = GetDy();
+		float member_c;
+		if ((Dx == 0) && (Dy == 0)){
+			std::cout<<"Zero line!"<<std::endl;
+			return false;
+		}
+		if (Dx == 0){
+			equasion_members = std::make_tuple(1, 0, a.x);
+			return true;
+		}
+		if (Dy == 0){
+			equasion_members = std::make_tuple(0, 1, a.y);
+			return true;
+		}
+		member_c = Dy / Dx * a.x - a.y;
+		Point2D ab_members;			
+		
+		if(Lines2DIntercept(std::make_tuple(a.x, a.y, member_c), std::make_tuple(b.x, b.y, member_c), ab_members)){
+			equasion_members = std::make_tuple(ab_members.x, ab_members.y, member_c);
+			return true; 
+		}
+		else
+			std::cout<<"Equasion members not solved, fix this!"<<std::endl;
+		return false;
 	}
 	void print_line(){
 		std::cout<<a.x<<" "<<a.y<<" / "<<b.x<<" "<<b.y<<std::endl;
@@ -118,14 +136,14 @@ struct Matrix2D{
 	}
 };
 
-Line2D DrawEquidistantLine(Line2D origin_line, Offset dist, OffsetSide side){
+Line2D DrawEquidistantLine(Line2D origin_line, Offset dist){
 	Point2D new_a, new_b;
-	int side_sign = (side == left) ? -1 : 1;
+	int side_sign = (dist >= 0) ? 1 : -1;
 	float dx = origin_line.b.x - origin_line.a.x;
 	float dy = origin_line.b.y - origin_line.a.y;
 	float ratio = dist / sqrt(dx*dx + dy*dy);
-	new_a.x = dy * ratio * side_sign;		//cos90 dx + sin90 dy
-	new_a.y = -dx * ratio * side_sign;	//cos90 dy - sin90 dx
+	new_a.x = origin_line.a.x + dy * ratio * side_sign;		//cos90 dx + sin90 dy
+	new_a.y = origin_line.a.y + -dx * ratio * side_sign;	//cos90 dy - sin90 dx
 	new_b.x = new_a.x + dx;
 	new_b.y = new_a.y + dy;
 	return (Line2D) {new_a, new_b};
@@ -138,8 +156,12 @@ bool Lines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, 
 										std::get<1>(line_a), std::get<1>(line_b));
 	Matrix2D delta_y(	std::get<0>(line_a), std::get<0>(line_b), 
 										std::get<2>(line_a), std::get<2>(line_b));
-	if(delta.Det()==0)
+	if(delta.Det()==0){
+		std::cout<<"Determinant = 0, cannot solve system!"<<std::endl;
+		std::cout<<"Line a: "<<std::get<0>(line_a)<<" "<<std::get<1>(line_a)<<" "<<std::get<2>(line_a)<<std::endl;
+		std::cout<<"Line b: "<<std::get<0>(line_b)<<" "<<std::get<1>(line_b)<<" "<<std::get<2>(line_b)<<std::endl;
 		return false;
+	}	
 	result = {delta_x.Det() / delta.Det(), delta_y.Det() / delta.Det()};
 	return true;
 }
@@ -167,6 +189,15 @@ bool VectorMultZSign(DekartCoords v1, DekartCoords v2) {
 		return true;
 	else 
 		return false;
+}
+
+AngleType CheckAngleType(Line2D &line_a, Line2D &line_b){
+	DekartCoords v1 = {-line_a.GetDx(), -line_a.GetDy(), 0};
+	DekartCoords v2 = {line_b.GetDx(), line_b.GetDy(), 0};
+	float mult = VectorMult(v1, v2).z;
+	if(mult > 0) return sharp;
+	if(mult == 0) return developed;
+	return obtuse;
 }
 
 void ConsoleHex(std::string s, int len){
