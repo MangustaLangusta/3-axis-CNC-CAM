@@ -214,6 +214,7 @@ class ContoursAndPaths {
 	public:
 		ContoursAndPaths(){
 			all_contours.emplace( std::make_pair((id)0, Contour(field, FIELD_WAYPOINTS, FIELD_HEIGHT)) );
+			equidistant_contours.insert((id)0);
 		}
 		void SetZStep(float new_z_step_mm) { z_step_mm = new_z_step_mm; }
 		void SetZOffset(float new_z_offset_mm) { z_offset_mm = new_z_offset_mm; }
@@ -262,19 +263,28 @@ class ContoursAndPaths {
 			return true;
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
-		bool MakeSweepContours(){
+		bool MakeSweepContours(float z){
+			auto it_z = contours_by_z.find(z);
+			if (it_z == contours_by_z.end())
+				return false;
 			std::cout<<"Start making sweep contours.."<<std::endl;
-			all_contours.find(0)->second.PrintContour();
 			std::vector<Point2D> wpts;
-			std::set<id> ID_by_z;
-			GetWaypointsByID(0, wpts);
-			std::map<Point2D, id> points_heap;
-			
-			for(auto it_x = contours_by_z.begin(); it_z != contours_by_z.end(); it_z++){
-				for(auto it_ID = ID_by_z.begin(); it_ID != ID_by_z.end(); it_ID++){
-					for(auto it_wpt = wpts.begin(); it_wpt != wpts.end(); it_wpt++)
-						points_heap.emplace(std::make_pair(*it_wpt, *it_ID) );
-				}	
+			std::set<id> ID_set_by_z = it_z->second;
+			std::map<Point2D, id> points_heap; 
+			std::cout<<"IDs: "<<std::endl;
+			for(auto it_ID = ID_set_by_z.begin(); it_ID != ID_set_by_z.end(); it_ID++){
+				if(equidistant_contours.find(*it_ID) == equidistant_contours.end())
+					continue;
+				GetWaypointsByID(*it_ID, wpts);
+				std::cout<<*it_ID<<" waypoints: ";
+				for(auto it_wpt = wpts.begin(); it_wpt != wpts.end(); it_wpt++)
+					points_heap.emplace(std::make_pair(*it_wpt, *it_ID) );
+				std::cout<<wpts.size()<<std::endl;
+			}	
+			//Now we have set of all points, 
+			//this set is sorted by x (smallest to largest) and (if x1 == x2) by y (smallest to largest)
+			while(!points_heap.empty()){
+				points_heap.erase(points_heap.begin());
 			}
 			return true;
 		}
