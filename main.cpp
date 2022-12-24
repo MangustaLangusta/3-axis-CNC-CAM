@@ -11,6 +11,7 @@
 #include "SlicerFacets.h"
 #include "SlicerInstruments.h"
 #include "SlicerContoursAndPaths.h"
+#include "test.h"
 
 
 
@@ -161,6 +162,7 @@ void CreateGCode(std::string input_file_name){
 	CreateFacetsVector(input_file_name, &facets_set);
 	contours_and_paths.MakeRawContours(&facets_set);
 	contours_and_paths.MakeEquidistantContours(10, contours_and_paths.GetAllRawContoursIDs());
+	contours_and_paths.MakeSweepContours();
 }
 
 

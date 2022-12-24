@@ -103,6 +103,7 @@ class Contour{
 			if (new_type == sweep){
 				ID = next_ID++;
 				type = sweep;
+				
 			}
 			else
 				std::cout<<"WRONG CONSTRUCTOR OF CONTOUR CLASS (SWEEP)"<<std::endl;
@@ -113,6 +114,11 @@ class Contour{
 		float GetZ() { return z; }
 		bool IsLoop() { return loop; }
 		std::vector<Point2D> GetWaypoints() { return waypoints; }
+		/*void GetWaypoints(std::set<Point2D> &request_set){
+			for (auto it = waypoints.begin(); it != waypoints.end(); it++)
+				if(!request_set.insert(*it).second)
+					std::cout<<"check GetWaypoints function for contours. ID = "<<GetID()<<std::endl;
+		}*/
 		void PrintContour(){
 			std::cout<<"Contour z = "<<z<<" ID = "<<ID<<std::endl;
 			for(auto it = waypoints.begin(); it != waypoints.end(); it++)
@@ -136,10 +142,11 @@ class Path {
 
 class ContoursAndPaths {
 	private:
-		//Contour field(field, FIELD_WAYPOINTS, FIELD_HEIGHT);						//one field for all objects
+		//Contour work_field = Contour(field, FIELD_WAYPOINTS, FIELD_HEIGHT);	//one field for all objects
 		std::map<id, Contour> all_contours;															//all contours are stored here
 		std::set<id> raw_contours;																		//all IDs of raw contours 
 		std::set<id> equidistant_contours;														//all IDs of equidistant contours
+		std::set<id> sweep_contours;																//all IDs of sweep contours
 		std::map<id, std::set<id>> contours_tree;										//jerarhy between contours
 		std::map<float, std::set<id>> contours_by_z;									//IDs sorted by z-coordinate
 		
@@ -154,6 +161,14 @@ class ContoursAndPaths {
 			else 
 				return NULL;
 		}
+		bool GetIDsByZ(float z, std::set<id> &request_set){
+			auto it = contours_by_z.find(z);
+			if (it != contours_by_z.end()){
+				request_set = it->second;
+				return true;
+			}
+			return false;
+		}
 		void PrintContour(id request){
 			if (GetContourByID(request))
 				GetContourByID(request)->PrintContour();
@@ -162,10 +177,20 @@ class ContoursAndPaths {
 		}
 		void AddToContoursByZ(float z, id ID){
 			std::map<float, std::set<id>>::iterator it_z = contours_by_z.find(z);
-			if (it_z == contours_by_z.end())
-				it_z = contours_by_z.insert( std::make_pair(z, std::set<id>{ID}) ).first;
+			if (it_z == contours_by_z.end()){
+				it_z = contours_by_z.insert( std::make_pair(z, std::set<id>{0, ID}) ).first;
+			}
 			else
 				it_z->second.insert(ID);
+		}
+		bool GetWaypointsByID(id request, std::vector<Point2D> &wpts){
+			std::map<id, Contour>::iterator contours_iter;
+			contours_iter = all_contours.find(request);
+			if(contours_iter != all_contours.end()){
+				wpts = contours_iter->second.GetWaypoints();
+				return true;
+			}
+			return false;
 		}
 		bool ExtractRawContoursFromLinesSet(std::vector<Line2D> *lines_set, float z){
 			std::multimap <Point2D, Point2D> lines_association;
@@ -187,6 +212,9 @@ class ContoursAndPaths {
 		}
 ////////////////////////////////////////////////////////////////////////////////////////////
 	public:
+		ContoursAndPaths(){
+			all_contours.emplace( std::make_pair((id)0, Contour(field, FIELD_WAYPOINTS, FIELD_HEIGHT)) );
+		}
 		void SetZStep(float new_z_step_mm) { z_step_mm = new_z_step_mm; }
 		void SetZOffset(float new_z_offset_mm) { z_offset_mm = new_z_offset_mm; }
 		void SetPrecision(float new_precision_mm) { precision = new_precision_mm; }
@@ -228,9 +256,26 @@ class ContoursAndPaths {
 				all_contours.emplace( std::make_pair(tmp_ID, Contour(parent_contour, offset, tmp_z)) );
 				equidistant_contours.insert(tmp_ID);
 				AddToContoursByZ(tmp_z, tmp_ID);
-				PrintContour(tmp_ID);
+				//PrintContour(tmp_ID);
 			}
 			std::cout<<"Equidistant contours done!"<<std::endl;
+			return true;
+		}
+///////////////////////////////////////////////////////////////////////////////////////////
+		bool MakeSweepContours(){
+			std::cout<<"Start making sweep contours.."<<std::endl;
+			all_contours.find(0)->second.PrintContour();
+			std::vector<Point2D> wpts;
+			std::set<id> ID_by_z;
+			GetWaypointsByID(0, wpts);
+			std::map<Point2D, id> points_heap;
+			
+			for(auto it_x = contours_by_z.begin(); it_z != contours_by_z.end(); it_z++){
+				for(auto it_ID = ID_by_z.begin(); it_ID != ID_by_z.end(); it_ID++){
+					for(auto it_wpt = wpts.begin(); it_wpt != wpts.end(); it_wpt++)
+						points_heap.emplace(std::make_pair(*it_wpt, *it_ID) );
+				}	
+			}
 			return true;
 		}
 };
