@@ -222,6 +222,64 @@ class ContoursAndPaths {
 		
 		std::set<id> GetAllRawContoursIDs() { return raw_contours; }
 ///////////////////////////////////////////////////////////////////////////////////////////
+		void SplitContourIntoBorders(id requested_ID, std::multimap<float, std::vector<Point2D>> &upper_bounds, std::multimap<float, std::vector<Point2D>> &lower_bounds){
+			std::vector<Point2D> cntr, new_bound;
+			std::vector<long> rising_nodes, falling_nodes, *start_nodes, *end_nodes;
+			float min_y;
+			if (!GetWaypointsByID(requested_ID, cntr))
+				return;
+			long size = cntr.size();
+			bool increasing = (cntr[0].x < cntr[1 % size].x) ? true : false;
+			bool decreasing = (cntr[0].x > cntr[1 & size].x) ? true : false;
+			for (long i = 1; i <= size; i++){
+				if(cntr[i % size].x == cntr[(i+1) % size].x)
+					continue;
+				if(cntr[i % size].x > cntr[(i+1) % size].x){
+					if(!decreasing)
+						falling_nodes.push_back(i % size);
+					increasing = false;
+					decreasing = true;
+					continue;
+				}
+				if(cntr[i % size].x < cntr[(i+1) % size].x){
+					if(!increasing)
+						rising_nodes.push_back(i % size);
+					increasing = true;
+					decreasing = false;
+				}
+			}
+			std::cout<<"rising_nodes: ";
+			for(auto i = rising_nodes.begin(); i != rising_nodes.end(); i++)
+				cntr[*i].print_point();
+			std::cout<<std::endl<<"falling nodes: ";
+			for(auto i = falling_nodes.begin(); i != falling_nodes.end(); i++)
+				cntr[*i].print_point();
+			std::cout<<std::endl;
+			if(falling_nodes.size() != rising_nodes.size()){
+				std::cout<<"Sizes of rising and falling vectors are not same!"<<std::endl;
+				return;
+			}
+			std::multimap<float, std::vector<Point2D>> *bound_ptr;
+			bool next_rising = rising_nodes[0] < falling_nodes[0] ? true : false; 
+			bool node_add = false;
+			for(long node = 0; node < rising_nodes.size();){
+				bound_ptr = next_rising ? &lower_bounds : &upper_bounds;
+				start_nodes = next_rising ? &rising_nodes : &falling_nodes;
+				end_nodes = next_rising? &falling_nodes : &rising_nodes;
+				new_bound.clear();
+				min_y = cntr[(*start_nodes)[node]].y;
+				for(long i = (*start_nodes)[node]; i <= (*end_nodes)[(node + node_add) % rising_nodes.size()]; i++){
+					new_bound.push_back(cntr[i % size]);
+					if(min_y > cntr[i % size].y)
+						min_y = cntr[i % size].y;
+				}
+				bound_ptr->emplace(min_y, new_bound);
+				next_rising = !next_rising;
+				node = node_add ? node++ : node;
+				node_add = node_add ? false : true;
+			}
+		}
+///////////////////////////////////////////////////////////////////////////////////////////
 		bool MakeRawContours(FacetsSet *facets_set){
 			std::vector<Line2D> lines_set;
 			float z;
@@ -270,6 +328,7 @@ class ContoursAndPaths {
 			std::cout<<"Start making sweep contours.."<<std::endl;
 			std::vector<Point2D> wpts;
 			std::set<id> ID_set_by_z = it_z->second;
+			/*
 			std::map<Point2D, id> points_heap; 
 			std::cout<<"IDs: "<<std::endl;
 			for(auto it_ID = ID_set_by_z.begin(); it_ID != ID_set_by_z.end(); it_ID++){
@@ -280,12 +339,32 @@ class ContoursAndPaths {
 				for(auto it_wpt = wpts.begin(); it_wpt != wpts.end(); it_wpt++)
 					points_heap.emplace(std::make_pair(*it_wpt, *it_ID) );
 				std::cout<<wpts.size()<<std::endl;
-			}	
+			}	*/
 			//Now we have set of all points, 
 			//this set is sorted by x (smallest to largest) and (if x1 == x2) by y (smallest to largest)
+			
+			std::multimap<float, std::vector<Point2D>> upper_bounds, lower_bounds;
+			for(auto it = ID_set_by_z.begin(); it != ID_set_by_z.end(); it++){
+				std::cout<<"ID = "<<*it<<std::endl;
+				PrintContour(*it);
+				SplitContourIntoBorders(*it, upper_bounds, lower_bounds);
+				std::cout<<"upper_bounds: "<<std::endl;
+				for(auto it1 = upper_bounds.begin(); it1 != upper_bounds.end(); it1++){
+					std::cout<<"min_y = "<<it1->first<<std::endl;
+					for(auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++)
+						it2->print_point();
+				}
+				std::cout<<"lower_bounds: "<<std::endl;
+				for(auto it1 = lower_bounds.begin(); it1 != lower_bounds.end(); it1++){
+					std::cout<<"min_y = "<<it1->first<<std::endl;
+					for(auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++)
+						it2->print_point();
+				}
+			}
+			/*
 			while(!points_heap.empty()){
 				points_heap.erase(points_heap.begin());
-			}
+			}*/
 			return true;
 		}
 };
