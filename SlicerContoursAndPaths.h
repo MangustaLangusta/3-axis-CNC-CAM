@@ -223,7 +223,7 @@ class ContoursAndPaths {
 		std::set<id> GetAllRawContoursIDs() { return raw_contours; }
 ///////////////////////////////////////////////////////////////////////////////////////////
 		void SplitContourIntoBorders(id requested_ID, std::multimap<float, std::vector<Point2D>> &upper_bounds, std::multimap<float, std::vector<Point2D>> &lower_bounds){
-			std::vector<Point2D> cntr, new_bound;
+			std::vector<Point2D> cntr, new_bound_upper, new_bound_lower;
 			std::vector<long> rising_nodes, falling_nodes, *start_nodes, *end_nodes;
 			float min_y;
 			if (!GetWaypointsByID(requested_ID, cntr))
@@ -259,24 +259,45 @@ class ContoursAndPaths {
 				std::cout<<"Sizes of rising and falling vectors are not same!"<<std::endl;
 				return;
 			}
+			if(rising_nodes.empty()){
+				std::cout<<"No nodes found!"<<std::endl;
+				return;
+			} 
+
 			std::multimap<float, std::vector<Point2D>> *bound_ptr;
-			bool next_rising = rising_nodes[0] < falling_nodes[0] ? true : false; 
-			bool node_add = false;
-			for(long node = 0; node < rising_nodes.size();){
-				bound_ptr = next_rising ? &lower_bounds : &upper_bounds;
-				start_nodes = next_rising ? &rising_nodes : &falling_nodes;
-				end_nodes = next_rising? &falling_nodes : &rising_nodes;
-				new_bound.clear();
-				min_y = cntr[(*start_nodes)[node]].y;
-				for(long i = (*start_nodes)[node]; i <= (*end_nodes)[(node + node_add) % rising_nodes.size()]; i++){
-					new_bound.push_back(cntr[i % size]);
-					if(min_y > cntr[i % size].y)
-						min_y = cntr[i % size].y;
+			bool rising; 
+
+			long rising_index = 0, falling_index = 0;
+
+			for(long i = rising_nodes[0]; i < (rising_nodes[0]+size); i++){
+				if(min_y > cntr[i%size].y)
+					min_y = cntr[i%size].y;
+				if(i == rising_nodes[rising_index]){
+					rising = true;
+					if(!new_bound_upper.empty()){
+						new_bound_upper.push_back(cntr[i % size]);
+						upper_bounds.emplace(min_y, new_bound_upper);
+						new_bound_upper.clear();
+					}
+					min_y = cntr[i%size].y;
+					new_bound_lower.push_back(cntr[i % size]);
+					rising_index = (rising_index + 1) % rising_nodes.size();
 				}
-				bound_ptr->emplace(min_y, new_bound);
-				next_rising = !next_rising;
-				node = node_add ? node++ : node;
-				node_add = node_add ? false : true;
+				if(i == falling_nodes[falling_index]){
+					rising = false;
+					if(!new_bound_lower.empty()){
+						new_bound_lower.push_back(cntr[i % size]);
+						lower_bounds.emplace(min_y, new_bound_lower);
+						new_bound_lower.clear();
+					}
+					min_y = min_y = cntr[i%size].y;
+					new_bound_upper.push_back(cntr[i % size]);
+					falling_index = (falling_index + 1) % falling_nodes.size();
+				}
+				if(rising)
+					new_bound_lower.push_back(cntr[i % size]);
+				else
+					new_bound_upper.push_back(cntr[i % size]);
 			}
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
