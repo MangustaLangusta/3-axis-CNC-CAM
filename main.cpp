@@ -8,11 +8,13 @@
 #include <set>
 #include <algorithm>
 #include <map>
+
 #include "SlicerUtilityStructs.h"
 #include "SlicerFacets.h"
 #include "SlicerInstruments.h"
-#include "SlicerContoursAndPaths.h"
 #include "test.h"
+#include "SlicerContoursAndPaths.h"
+
 
 
 
@@ -163,7 +165,8 @@ void CreateGCode(std::string input_file_name){
 	CreateFacetsVector(input_file_name, &facets_set);
 	contours_and_paths.MakeRawContours(&facets_set);
 	contours_and_paths.MakeEquidistantContours(10, contours_and_paths.GetAllRawContoursIDs());
-	contours_and_paths.MakeSweepContours(45);
+	contours_and_paths.MakeTestContours();
+	contours_and_paths.MakeSweepContours(test::test_z);
 }
 
 

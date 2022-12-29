@@ -108,6 +108,12 @@ class Contour{
 			else
 				std::cout<<"WRONG CONSTRUCTOR OF CONTOUR CLASS (SWEEP)"<<std::endl;
 		}
+		//force contour -- for testing
+		Contour(std::vector<Point2D> wpts){
+			ID = next_ID++;
+			waypoints = wpts;
+			z = test::test_z;
+		}
 		id GetID() { return ID; }
 		ContourType GetType() { return type; }
 		static id GetNextID() { return next_ID; }
@@ -149,6 +155,8 @@ class ContoursAndPaths {
 		std::set<id> sweep_contours;																//all IDs of sweep contours
 		std::map<id, std::set<id>> contours_tree;										//jerarhy between contours
 		std::map<float, std::set<id>> contours_by_z;									//IDs sorted by z-coordinate
+		
+		std::set<id> test_contours;
 		
 		float z_step_mm;
 		float z_offset_mm;
@@ -220,6 +228,8 @@ class ContoursAndPaths {
 		void SetZOffset(float new_z_offset_mm) { z_offset_mm = new_z_offset_mm; }
 		void SetPrecision(float new_precision_mm) { precision = new_precision_mm; }
 		
+		std::set<id> GetTestContoursIDs() { return test_contours; }
+		
 		std::set<id> GetAllRawContoursIDs() { return raw_contours; }
 ///////////////////////////////////////////////////////////////////////////////////////////
 		void SplitContourIntoBorders(id requested_ID, std::multimap<float, std::vector<Point2D>> &upper_bounds, std::multimap<float, std::vector<Point2D>> &lower_bounds){
@@ -248,13 +258,6 @@ class ContoursAndPaths {
 					decreasing = false;
 				}
 			}
-			std::cout<<"rising_nodes: ";
-			for(auto i = rising_nodes.begin(); i != rising_nodes.end(); i++)
-				cntr[*i].print_point();
-			std::cout<<std::endl<<"falling nodes: ";
-			for(auto i = falling_nodes.begin(); i != falling_nodes.end(); i++)
-				cntr[*i].print_point();
-			std::cout<<std::endl;
 			if(falling_nodes.size() != rising_nodes.size()){
 				std::cout<<"Sizes of rising and falling vectors are not same!"<<std::endl;
 				return;
@@ -268,36 +271,35 @@ class ContoursAndPaths {
 			bool rising; 
 
 			long rising_index = 0, falling_index = 0;
-
-			for(long i = rising_nodes[0]; i < (rising_nodes[0]+size); i++){
+			min_y = cntr[rising_nodes[0]].y;
+			long start_index = rising_nodes[0] < falling_nodes[0] ? rising_nodes[0] : falling_nodes[0];
+			for(long i = start_index; i <= (start_index+size); i++){
 				if(min_y > cntr[i%size].y)
 					min_y = cntr[i%size].y;
-				if(i == rising_nodes[rising_index]){
+				if((i % size) == rising_nodes[rising_index]){
 					rising = true;
+					if(!new_bound_lower.empty()){
+						new_bound_lower.push_back(cntr[i % size]);
+						lower_bounds.emplace(min_y, new_bound_lower);
+						new_bound_lower.clear();
+					}
+					min_y = cntr[i%size].y;
+					rising_index = (rising_index + 1) % rising_nodes.size();
+				}
+				if((i % size) == falling_nodes[falling_index]){
+					rising = false;
 					if(!new_bound_upper.empty()){
 						new_bound_upper.push_back(cntr[i % size]);
 						upper_bounds.emplace(min_y, new_bound_upper);
 						new_bound_upper.clear();
 					}
 					min_y = cntr[i%size].y;
-					new_bound_lower.push_back(cntr[i % size]);
-					rising_index = (rising_index + 1) % rising_nodes.size();
-				}
-				if(i == falling_nodes[falling_index]){
-					rising = false;
-					if(!new_bound_lower.empty()){
-						new_bound_lower.push_back(cntr[i % size]);
-						lower_bounds.emplace(min_y, new_bound_lower);
-						new_bound_lower.clear();
-					}
-					min_y = min_y = cntr[i%size].y;
-					new_bound_upper.push_back(cntr[i % size]);
 					falling_index = (falling_index + 1) % falling_nodes.size();
 				}
 				if(rising)
-					new_bound_lower.push_back(cntr[i % size]);
-				else
 					new_bound_upper.push_back(cntr[i % size]);
+				else
+					new_bound_lower.push_back(cntr[i % size]);
 			}
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -370,6 +372,8 @@ class ContoursAndPaths {
 				PrintContour(*it);
 				SplitContourIntoBorders(*it, upper_bounds, lower_bounds);
 				std::cout<<"upper_bounds: "<<std::endl;
+				
+				// * * *
 				for(auto it1 = upper_bounds.begin(); it1 != upper_bounds.end(); it1++){
 					std::cout<<"min_y = "<<it1->first<<std::endl;
 					for(auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++)
@@ -381,13 +385,47 @@ class ContoursAndPaths {
 					for(auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++)
 						it2->print_point();
 				}
+				// * * * 
+				
+				std::set<float> all_x_coords;
+				std::map<float, std::set<long>> upper_bounds_indexes;
+				std::map<float, std::set<long>> lower_bounds_indexes;
+				
+				for(long i = 0; i < upper_bounds.size(); i++){
+					all_x_coords.insert(upper_bounds[i].begin()->x);
+					std::cout<<"all_x_coords added"<<upper_bounds[i].begin()->x <<std::endl;
+					all_x_coords.insert(upper_bounds[i].end()->x);
+					std::cout<<"all_x_coords added "<<upper_bounds[i].end()->x <<std::endl;
+					upper_bounds_indexes.insert(std::make_pair(upper_bounds[i].begin()->x, i));
+					std::cout<<"upper index added "<<i <<std::endl;
+					upper_bounds_indexes.insert(std::make_pair(upper_bounds[i].end()->x, i));
+					std::cout<<"upper index added "<<i <<std::endl;
+					lower_bounds_indexes.insert(std::make_pair(lower_bounds[i].begin()->x, i));
+					std::cout<<"lower index added "<<i <<std::endl;
+					lower_bounds_indexes.inert(std::make_pair(lower_bounds_indexes[i].end()->x, i));
+					std::cout<<"lower index added "<<i <<std::endl;
+				}
+				/*
+				for(auto it_x = all_x_coords.begin(); it_x != all_x_coords.end(); it_x++){
+					
+				}*/
+				
+				
+				upper_bounds.clear();
+				lower_bounds.clear();
 			}
-			/*
-			while(!points_heap.empty()){
-				points_heap.erase(points_heap.begin());
-			}*/
 			return true;
 		}
+	void MakeTestContours(){
+		id tmp_ID = Contour::GetNextID();
+		all_contours.emplace( std::make_pair(tmp_ID, Contour(test::test_contour)) );
+		test_contours.insert(tmp_ID);
+		AddToContoursByZ(test::test_z, tmp_ID);
+		tmp_ID = Contour::GetNextID();
+		all_contours.emplace( std::make_pair(tmp_ID, Contour(test::test_field)) );
+		test_contours.insert(tmp_ID);
+		AddToContoursByZ(test::test_z, tmp_ID);
+	}
 };
 
 
