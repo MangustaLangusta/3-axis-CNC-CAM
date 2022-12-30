@@ -4,6 +4,59 @@
 #define FIELD_WAYPOINTS { {-10, -10}, {-10, 110}, {110, 110}, {110, -10} }
 #define FIELD_HEIGHT 150
 
+struct BorderLink{
+	const float x;
+	const float y;
+	const Point2D coordinates;
+	const std::vector<Point2D> additional_points;	//connected ponts with same x-coordinate, meaningless for alghoritm being used
+	const bool start;
+	const bool finish;
+	const bool upper;	
+	
+	void PrintBorderLink(){
+		std::cout<<"x= "<<x<<" y= "<<y<<" start="<<start<<" finish="<<finish<<" upper="<<upper<<std::endl;
+		if(!additional_points.empty())
+			std::cout<<"additional_points:"<<std::endl;
+		for(auto it = additional_points.begin(); it != additional_points.end(); it++)
+			Point2D(*it).print_point();
+	}
+};
+
+class Border{
+	private:
+		std::list<BorderLink> links;
+		
+		
+	public:
+		Border(bool upper_border, std::vector<Point2D> source_points){
+			float x;
+			float y;
+			Point2D coordinates;
+			std::vector<Point2D> points;
+			bool upper = upper_border;
+			bool start = true;
+			bool finish = false;
+			long size = source_points.size();
+			for(long i = 0; i < size; i++){
+				if(source_points[(i+1)%size].x == source_points[i].x){
+					points.push_back(source_points[i]);
+					continue;
+				}
+				points.push_back(source_points[i]);
+				finish = (i == (size-1));
+				coordinates = *points.rbegin();
+				points.erase(--points.end());
+				links.push_back({coordinates.x, coordinates.y, coordinates, points, start, finish, upper_border});
+				start = false;
+			}
+		}
+		void PrintBorder(){
+			for(auto it = links.begin(); it != links.end(); it++)
+				it->PrintBorderLink();
+		}
+};
+
+
 class Contour{
 	private:
 		id ID;
@@ -232,10 +285,9 @@ class ContoursAndPaths {
 		
 		std::set<id> GetAllRawContoursIDs() { return raw_contours; }
 ///////////////////////////////////////////////////////////////////////////////////////////
-		void SplitContourIntoBorders(id requested_ID, std::multimap<float, std::vector<Point2D>> &upper_bounds, std::multimap<float, std::vector<Point2D>> &lower_bounds){
+		void SplitContourIntoBorders(id requested_ID, std::vector<std::vector<Point2D>> &upper_bounds, std::vector<std::vector<Point2D>> &lower_bounds){
 			std::vector<Point2D> cntr, new_bound_upper, new_bound_lower;
 			std::vector<long> rising_nodes, falling_nodes, *start_nodes, *end_nodes;
-			float min_y;
 			if (!GetWaypointsByID(requested_ID, cntr))
 				return;
 			long size = cntr.size();
@@ -266,34 +318,26 @@ class ContoursAndPaths {
 				std::cout<<"No nodes found!"<<std::endl;
 				return;
 			} 
-
-			std::multimap<float, std::vector<Point2D>> *bound_ptr;
 			bool rising; 
-
 			long rising_index = 0, falling_index = 0;
-			min_y = cntr[rising_nodes[0]].y;
 			long start_index = rising_nodes[0] < falling_nodes[0] ? rising_nodes[0] : falling_nodes[0];
 			for(long i = start_index; i <= (start_index+size); i++){
-				if(min_y > cntr[i%size].y)
-					min_y = cntr[i%size].y;
 				if((i % size) == rising_nodes[rising_index]){
 					rising = true;
 					if(!new_bound_lower.empty()){
 						new_bound_lower.push_back(cntr[i % size]);
-						lower_bounds.emplace(min_y, new_bound_lower);
+						lower_bounds.push_back(new_bound_lower);
 						new_bound_lower.clear();
 					}
-					min_y = cntr[i%size].y;
 					rising_index = (rising_index + 1) % rising_nodes.size();
 				}
 				if((i % size) == falling_nodes[falling_index]){
 					rising = false;
 					if(!new_bound_upper.empty()){
 						new_bound_upper.push_back(cntr[i % size]);
-						upper_bounds.emplace(min_y, new_bound_upper);
+						upper_bounds.push_back(new_bound_upper);
 						new_bound_upper.clear();
 					}
-					min_y = cntr[i%size].y;
 					falling_index = (falling_index + 1) % falling_nodes.size();
 				}
 				if(rising)
@@ -366,7 +410,7 @@ class ContoursAndPaths {
 			//Now we have set of all points, 
 			//this set is sorted by x (smallest to largest) and (if x1 == x2) by y (smallest to largest)
 			
-			std::multimap<float, std::vector<Point2D>> upper_bounds, lower_bounds;
+			std::vector<std::vector<Point2D>> upper_bounds, lower_bounds;
 			for(auto it = ID_set_by_z.begin(); it != ID_set_by_z.end(); it++){
 				std::cout<<"ID = "<<*it<<std::endl;
 				PrintContour(*it);
@@ -375,18 +419,23 @@ class ContoursAndPaths {
 				
 				// * * *
 				for(auto it1 = upper_bounds.begin(); it1 != upper_bounds.end(); it1++){
-					std::cout<<"min_y = "<<it1->first<<std::endl;
-					for(auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++)
+					for(auto it2 = it1->begin(); it2 != it1->end(); it2++)
 						it2->print_point();
 				}
 				std::cout<<"lower_bounds: "<<std::endl;
 				for(auto it1 = lower_bounds.begin(); it1 != lower_bounds.end(); it1++){
-					std::cout<<"min_y = "<<it1->first<<std::endl;
-					for(auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++)
+					for(auto it2 = it1->begin(); it2 != it1->end(); it2++)
 						it2->print_point();
 				}
-				// * * * 
 				
+				std::vector<Border> my_upper_borders;
+				for(auto it = upper_bounds.begin(); it != upper_bounds.end(); it++){
+					my_upper_borders.push_back(Border(true, *it));
+					my_upper_borders.rbegin()->PrintBorder();
+				}
+				
+				// * * * 
+				/*
 				std::set<float> all_x_coords;
 				std::map<float, std::set<long>> upper_bounds_indexes;
 				std::map<float, std::set<long>> lower_bounds_indexes;
