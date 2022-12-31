@@ -415,7 +415,7 @@ class ContoursAndPaths {
 				std::cout<<"ID = "<<*it<<std::endl;
 				PrintContour(*it);
 				SplitContourIntoBorders(*it, upper_bounds, lower_bounds);
-				std::cout<<"upper_bounds: "<<std::endl;
+				/*std::cout<<"upper_bounds: "<<std::endl;
 				
 				// * * *
 				for(auto it1 = upper_bounds.begin(); it1 != upper_bounds.end(); it1++){
@@ -426,13 +426,15 @@ class ContoursAndPaths {
 				for(auto it1 = lower_bounds.begin(); it1 != lower_bounds.end(); it1++){
 					for(auto it2 = it1->begin(); it2 != it1->end(); it2++)
 						it2->print_point();
-				}
+				}*/
 				
 				std::vector<Border> my_upper_borders;
 				for(auto it = upper_bounds.begin(); it != upper_bounds.end(); it++){
 					my_upper_borders.push_back(Border(true, *it));
 					my_upper_borders.rbegin()->PrintBorder();
 				}
+				
+				
 				
 				// * * * 
 				/*
