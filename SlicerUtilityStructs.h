@@ -200,6 +200,12 @@ AngleType CheckAngleType(Line2D &line_a, Line2D &line_b){
 	return obtuse;
 }
 
+Point2D LinearInterpolation(Point2D a, Point2D b, float x){
+	float ratio = (x-a.x)/(b.x-a.x);
+	float dy = b.y-a.y;
+	return Point2D{x, a.y + dy * ratio};
+}
+
 void ConsoleHex(std::string s, int len){
 	std::cout.unsetf(std::ios::dec);
 	std::cout.setf(std::ios::hex);
