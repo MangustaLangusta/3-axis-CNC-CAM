@@ -25,6 +25,10 @@ struct BorderLink{
 		return false;
 	}
 	
+	friend bool operator< (const BorderLink &link, const float x){
+		return (link.x < x);
+	}
+	
 	void PrintBorderLink(){
 		std::cout<<"x= "<<x<<" y= "<<y<<" start="<<start<<" finish="<<finish<<" upper="<<upper<<std::endl;
 		if(!additional_points.empty())
@@ -38,14 +42,14 @@ class Border{
 	private:
 		std::list<BorderLink> links;
 		std::set<float> all_x;
-		
+		bool upper;
 	public:
 		Border(bool upper_border, std::vector<Point2D> source_points){
 			float x;
 			float y;
 			Point2D coordinates;
 			std::vector<Point2D> points;
-			bool upper = upper_border;
+			upper = upper_border;
 			bool start = true;
 			bool finish = false;
 			long size = source_points.size();
@@ -70,24 +74,31 @@ class Border{
 		}
 		
 		void CreateInterpolatedLinksByX(std::set<float> &x_coords_set){
-			std::set<float>::iterator it_x_set = x_coords_set.begin();
-			std::list<BorderLink>::iterator it_link = links.begin();
-			std::list<BorderLink>::iterator it_link_next = it_link;
+			std::list<BorderLink>::iterator it_next = links.begin();
+			std::set<float>::iterator it_biggest, it_smallest;
 			Point2D new_point;
-			for(long i = 0; i < links.size(); i++){
-				it_link_next++;
-				while((*it_x_set < it_link->x)||(it_x_set != x_coords_set.end())){
-					it_x_set++;
-				}
-				if(it_x_set == x_coords_set.end())
+			for(auto it = links.begin(); it != links.end(); it++){
+				it_next = it;
+				it_next++;
+				if(it_next == links.end())
 					break;
-				while((*it_x_set < it_link_next->x)||(it_x_set != x_coords_set.end())){
-					new_point = LinearInterpolation(it_link->coordinates, it_link_next->coordinates, *it_x_set);
-					it_link = links.emplace(it_link, BorderLink {new_point.x, new_point.y, new_point, {}, false, false, it_link->upper});
-					it_x_set++;
+				it_biggest = upper ? x_coords_set.lower_bound(it_next->x) : x_coords_set.lower_bound(it->x);
+				it_smallest = upper ? x_coords_set.lower_bound(it->x) : x_coords_set.lower_bound(it_next->x);
+				for(it_smallest; it_smallest != it_biggest; it_smallest++){
+					if((*it_smallest == it->x)||(*it_smallest == it_next->x))
+						continue;
+					if(it_next->additional_points.empty())
+						new_point = LinearInterpolation(it->coordinates, it_next->coordinates, *it_smallest);
+					else
+						new_point = LinearInterpolation(it->coordinates, *(it_next->additional_points.rbegin()), *it_smallest);
+					if(upper){
+						it++;
+						it = links.emplace(it, BorderLink {new_point.x, new_point.y, new_point, {}, false, false, it->upper});
+					}
+					else 
+						it_next = links.emplace(it_next, BorderLink {new_point.x, new_point.y, new_point, {}, false, false, it->upper});
 				}
-				it_link++;
-			}
+			}		
 		}
 		
 		void GetLinks(std::set<BorderLink> &links_set){
@@ -461,6 +472,8 @@ class ContoursAndPaths {
 			std::set<BorderLink> border_links_set;
 			std::set<float> all_x;
 			for(auto it : ID_set_by_z){
+				if(it == 0)
+					continue;
 				std::cout<<"ID = "<<it<<std::endl;
 				PrintContour(it);
 				SplitContourIntoBorders(it, upper_bounds, lower_bounds);
@@ -468,10 +481,6 @@ class ContoursAndPaths {
 					borders.push_back(Border(true, it));
 				for(auto it : lower_bounds)
 					borders.push_back(Border(false, it));
-		
-				/*
-				for(auto &it : borders)
-					it.CreateInterpolatedLinksByX(all_x);
 				
 				/*
 				for(auto &it : borders)
@@ -489,13 +498,10 @@ class ContoursAndPaths {
 				upper_bounds.clear();
 				lower_bounds.clear();
 			}
-			std::cout<<"borders: "<<std::endl;
-			for(auto &it : borders)
-				it.PrintBorder();				
 			for(auto &it : borders)
 				it.ExtractAllXCoordinates(all_x);
-			for(auto &it : all_x)
-				std::cout<<it<<" ";
+			for(auto &it : borders)
+				it.CreateInterpolatedLinksByX(all_x);
 			return true;
 		}
 	void MakeTestContours(){
