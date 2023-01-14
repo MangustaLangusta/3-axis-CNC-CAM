@@ -4,14 +4,15 @@
 #define FIELD_WAYPOINTS { {-10, -10}, {-10, 110}, {110, 110}, {110, -10} }
 #define FIELD_HEIGHT 150
 
+
 struct BorderLink{
-	const float x;
-	const float y;
-	const Point2D coordinates;
-	const std::vector<Point2D> additional_points;	//connected ponts with same x-coordinate, meaningless for alghoritm being used
-	const bool start;
-	const bool finish;
-	const bool upper;	
+	float x;
+	float y;
+	Point2D coordinates;
+	std::vector<Point2D> additional_points;	//connected ponts with same x-coordinate, meaningless for alghoritm being used
+	bool start;
+	bool finish;
+	bool upper;	
 	
 	friend bool operator< (const BorderLink &link_a, const BorderLink &link_b){
 		if (link_a.x < link_b.x) 
@@ -29,7 +30,7 @@ struct BorderLink{
 		return (link.x < x);
 	}
 	
-	void PrintBorderLink(){
+	void PrintBorderLink() {
 		std::cout<<"x= "<<x<<" y= "<<y<<" start="<<start<<" finish="<<finish<<" upper="<<upper<<std::endl;
 		if(!additional_points.empty())
 			std::cout<<"additional_points:"<<std::endl;
@@ -42,7 +43,50 @@ class Border{
 	private:
 		std::list<BorderLink> links;
 		std::set<float> all_x;
+		Point2D min_y_point;
+		Point2D max_y_point;
 		bool upper;
+		
+		
+		
+		void EmplaceBorderLink(std::list<BorderLink>::iterator *it_new, BorderLink new_link){
+			all_x.insert(new_link.x);
+			Point2D new_link_lowest = new_link.coordinates;
+			for(auto it : new_link.additional_points)
+				new_link_lowest = it.y < new_link_lowest.y ? it : new_link_lowest;
+			if(links.empty()){
+				min_y_point = new_link_lowest;
+				max_y_point = new_link_lowest;
+			}
+			else {
+				min_y_point = new_link.y < min_y_point.y ? new_link_lowest : min_y_point;
+				max_y_point = new_link.y > max_y_point.y ? new_link_lowest : max_y_point;
+			}
+			if(*it_new == links.begin()){
+				new_link.start = true;
+				links.begin()->start = false;
+			}
+			else if(*it_new == links.end()){
+				new_link.finish = true;
+				links.rbegin()->finish = false;
+			}
+			*it_new = links.emplace(*it_new, new_link);
+		}
+		
+		void AddLink(BorderLink new_link){
+			std::list<BorderLink>::iterator *it_link;
+			*it_link = links.end();
+			this->EmplaceBorderLink(it_link, new_link);
+		}
+		
+		void ReverseLinks() { 
+			links.reverse(); 
+			(*links.begin()).start = true;
+			(*links.rbegin()).start = false;
+			(*links.begin()).finish = false;
+			(*links.rbegin()).finish = true;
+		}
+
 	public:
 		Border(bool upper_border, std::vector<Point2D> source_points){
 			float x;
@@ -53,12 +97,17 @@ class Border{
 			bool start = true;
 			bool finish = false;
 			long size = source_points.size();
+			min_y_point = max_y_point = source_points[0];
 			for(long i = 0; i < size; i++){
 				if(source_points[(i+1)%size].x == source_points[i].x){
 					points.push_back(source_points[i]);
+					min_y_point = source_points[i].y < min_y_point.y ? source_points[i] : min_y_point;
+					max_y_point = source_points[i].y > max_y_point.y ? source_points[i] : max_y_point;
 					continue;
 				}
 				points.push_back(source_points[i]);
+				min_y_point = source_points[i].y < min_y_point.y ? source_points[i] : min_y_point;
+				max_y_point = source_points[i].y > max_y_point.y ? source_points[i] : max_y_point;
 				finish = (i == (size-1));
 				coordinates = *points.rbegin();
 				points.erase(--points.end());
@@ -66,11 +115,28 @@ class Border{
 				all_x.insert(coordinates.x);
 				start = false;
 			}
+			//this->PrintBorder();
 		}
 		
-		void ExtractAllXCoordinates(std::set<float> &all_x){
-		for(auto &it: links)
-				all_x.insert(it.x);
+		Border(bool is_upper){
+			upper = is_upper;
+			std::cout<<"created Border"<<std::endl;
+		}
+		
+		
+		friend bool operator< (const Border &border_a, const Border &border_b){
+			return border_a.min_y_point.y < border_b.min_y_point.y;
+		}
+		
+		float GetMinY(){ return min_y_point.y; }
+		float GetMaxY() { return max_y_point.y; }
+		float GetXBegin()  { return *all_x.begin(); }
+		float GetXEnd() { return *all_x.rbegin(); }
+		std::set<float> GetAllX() { return all_x; }
+		
+		void ExtractAllXCoordinates(std::set<float> &x_set){ 
+			for(auto it : all_x)
+				x_set.insert(it); 
 		}
 		
 		void CreateInterpolatedLinksByX(std::set<float> &x_coords_set){
@@ -93,23 +159,82 @@ class Border{
 						new_point = LinearInterpolation(it->coordinates, *(it_next->additional_points.rbegin()), *it_smallest);
 					if(upper){
 						it++;
-						it = links.emplace(it, BorderLink {new_point.x, new_point.y, new_point, {}, false, false, it->upper});
+						EmplaceBorderLink(&it, BorderLink {new_point.x, new_point.y, new_point, {}, false, false, it->upper});
+						//it->PrintBorderLink();
 					}
-					else 
-						it_next = links.emplace(it_next, BorderLink {new_point.x, new_point.y, new_point, {}, false, false, it->upper});
+					else {
+						EmplaceBorderLink(&it_next, BorderLink {new_point.x, new_point.y, new_point, {}, false, false, it->upper});
+						//it_next->PrintBorderLink();
+					}
 				}
 			}		
+			//this->PrintBorder();
 		}
 		
-		void GetLinks(std::set<BorderLink> &links_set){
-			for(auto &it : links)
-				links_set.emplace(it);
+		void ClearBorder(){
+			links.clear();
+			all_x.clear();
 		}
 		
-		void PrintBorder(){
-			std::cout<<"border"<<std::endl;
+		void SplitBorderByXRange(std::pair<float, float> &x_range, Border &extracted_border, std::vector <Border> &new_borders){
+			bool start_extract = false;
+			bool first_split_allowed = true;
+			bool second_split_allowed = false;
+			int added_borders = 0;
+			if(!upper)
+				links.reverse();
+			for(auto it : links){
+				if(start_extract){
+					extracted_border.AddLink(it);
+					if(it.x == x_range.second){
+						start_extract = false;
+						second_split_allowed = true;
+						first_split_allowed = false;
+					}
+					continue;
+				}
+				if(it.x == x_range.first){
+					start_extract = true;
+					extracted_border.AddLink(it);
+					continue;
+				}
+				if (first_split_allowed){
+					new_borders.emplace_back(Border(upper));
+					added_borders++;
+					first_split_allowed = false;
+				}
+				if (second_split_allowed){
+					new_borders.emplace_back(Border(upper));
+					added_borders++;
+					new_borders.rbegin()->AddLink(extracted_border.GetLastLink());
+					second_split_allowed = false;
+				}
+				new_borders.rbegin()->AddLink(it);
+			}			
+			if(!upper){
+				links.reverse();
+				extracted_border.ReverseLinks();
+				auto it = new_borders.rbegin();
+				for(added_borders; added_borders > 0; added_borders--){
+					it->ReverseLinks();
+					it++;
+				}					
+			}
+		}
+		
+		void GetLinks(std::list<BorderLink> &links_set) {
 			for(auto &it : links)
-				it.PrintBorderLink();
+				links_set.push_back(it);
+		}
+		
+		BorderLink GetLastLink() {
+			return *links.rbegin();
+		}
+		
+		void PrintBorder() {
+			std::cout<<"border min_y = "<<min_y_point.y<<" max_y = "<<max_y_point.y<<std::endl;
+			for(auto it = links.begin(); it != links.end(); it++)
+				it->PrintBorderLink();
 		}
 };
 
@@ -209,14 +334,27 @@ class Contour{
 				std::cout<<"WRONG CONSTRUCTOR OF CONTOUR CLASS (FIELD)"<<std::endl;
 		}
 		//sweep contour
-		Contour(ContourType new_type){
-			if (new_type == sweep){
-				ID = next_ID++;
-				type = sweep;
-				
+		Contour(ContourType new_type, Border &upper_border, Border &lower_border, const float &z_plane){
+			ID = next_ID++;
+			type = sweep;
+			z = z_plane;
+			std::list<BorderLink> upper, lower;
+			upper_border.GetLinks(upper);
+			lower_border.GetLinks(lower);
+			for(auto it : upper){
+				for(auto it_additional : it.additional_points)
+					waypoints.emplace_back(it_additional);
+				waypoints.emplace_back(it.coordinates);
 			}
-			else
-				std::cout<<"WRONG CONSTRUCTOR OF CONTOUR CLASS (SWEEP)"<<std::endl;
+			for(auto it : lower){
+				for(auto it_additional : it.additional_points)
+					waypoints.emplace_back(it_additional);
+				if(*waypoints.rbegin() == it.coordinates)
+					continue;
+				waypoints.emplace_back(it.coordinates);
+			}
+			if(*waypoints.begin() == *waypoints.rbegin())
+				waypoints.pop_back();
 		}
 		//force contour -- for testing
 		Contour(std::vector<Point2D> wpts){
@@ -452,24 +590,12 @@ class ContoursAndPaths {
 			std::cout<<"Start making sweep contours.."<<std::endl;
 			std::vector<Point2D> wpts;
 			std::set<id> ID_set_by_z = it_z->second;
-			/*
-			std::map<Point2D, id> points_heap; 
-			std::cout<<"IDs: "<<std::endl;
-			for(auto it_ID = ID_set_by_z.begin(); it_ID != ID_set_by_z.end(); it_ID++){
-				if(equidistant_contours.find(*it_ID) == equidistant_contours.end())
-					continue;
-				GetWaypointsByID(*it_ID, wpts);
-				std::cout<<*it_ID<<" waypoints: ";
-				for(auto it_wpt = wpts.begin(); it_wpt != wpts.end(); it_wpt++)
-					points_heap.emplace(std::make_pair(*it_wpt, *it_ID) );
-				std::cout<<wpts.size()<<std::endl;
-			}	*/
+
 			//Now we have set of all points, 
 			//this set is sorted by x (smallest to largest) and (if x1 == x2) by y (smallest to largest)
 			
 			std::vector<std::vector<Point2D>> upper_bounds, lower_bounds;
-			std::vector<Border> borders;
-			std::set<BorderLink> border_links_set;
+			std::vector<Border> lower_borders, upper_borders;
 			std::set<float> all_x;
 			for(auto it : ID_set_by_z){
 				if(it == 0)
@@ -477,33 +603,151 @@ class ContoursAndPaths {
 				std::cout<<"ID = "<<it<<std::endl;
 				PrintContour(it);
 				SplitContourIntoBorders(it, upper_bounds, lower_bounds);
-				for(auto it : upper_bounds)
-					borders.push_back(Border(true, it));
-				for(auto it : lower_bounds)
-					borders.push_back(Border(false, it));
-				
-				/*
-				for(auto &it : borders)
-					it.GetLinks(border_links_set);
-				//now we have fully sorted set of links, from smallest x to largest, and, if equal x, from largest y to smallest.
-				//if x1 = x2 & y1 = y2, upper link will be smaller then lower link
-				
-				float current_x = border_links_set.begin()->x;
-				for(auto it : border_links_set)
-					it.PrintBorderLink();
-				
-				*/
-				
-				
+				for(auto it = upper_bounds.begin(); it != upper_bounds.end(); it++){
+					upper_borders.push_back(Border(true, *it));
+				}
+				for(auto it = lower_bounds.begin(); it != lower_bounds.end(); it++)
+					lower_borders.push_back(Border(false, *it));			
 				upper_bounds.clear();
 				lower_bounds.clear();
 			}
-			for(auto &it : borders)
+			for(auto &it : lower_borders)
 				it.ExtractAllXCoordinates(all_x);
-			for(auto &it : borders)
+			for(auto &it : upper_borders)
+				it.ExtractAllXCoordinates(all_x);
+		
+			for(auto &it : lower_borders)
 				it.CreateInterpolatedLinksByX(all_x);
+			for(auto &it : upper_borders)
+				it.CreateInterpolatedLinksByX(all_x);
+			
+			std::sort(upper_borders.begin(), upper_borders.end());
+			std::sort(lower_borders.begin(), lower_borders.end());
+			
+			/*
+			std::cout<<"Lower borders: "<<std::endl;
+			for(auto it : lower_borders)
+				it.PrintBorder();
+			
+			std::cout<<"Upper borders: "<<std::endl;
+			for(auto it : upper_borders)
+				it.PrintBorder();
+			*/
+			
+			
+			//to find lowest upper border and upper borders that min_y < lowest upper border max_y
+			std::set<float> x_LU_set, x_set_to_exclude, x_set_begins, x_set_ends, x_set_tmp, x_LL_set; 
+			std::vector<Border>::iterator it_LL_border;
+			std::vector<Border> new_upper_borders, new_lower_borders;
+			x_LU_set = upper_borders.begin()->GetAllX();	//ALL X COORDS OF LU BORDER			
+			
+			
+			x_set_begins.clear();
+			x_set_ends.clear();
+			//this can be improved
+			for(auto it_other_upper = ++upper_borders.begin(); it_other_upper != upper_borders.end(); it_other_upper++){
+				if(it_other_upper->GetMinY() > upper_borders.begin()->GetMaxY())
+					break;
+				x_set_begins.insert(it_other_upper->GetXBegin());
+				x_set_ends.insert(it_other_upper->GetXEnd());	
+				x_set_tmp = it_other_upper->GetAllX();
+				for(auto it = ++x_set_tmp.begin(); it != --x_set_tmp.end(); it++)
+					x_set_to_exclude.insert(*it);
+			}
+			for(auto &it : x_set_begins) {
+				if(x_set_ends.find(it) != x_set_ends.end())
+					x_set_to_exclude.insert(it);
+			}
+			//now x_set_to_exclude contains all intersected x of possible overcasting upper borders			
+			std::pair<float, float> x_range;
+			std::set<float> x_set_LL;
+			std::set<float>::iterator x_start_LL, x_end_LL;
+			bool valid_first = false;
+			bool valid_second = false;
+			Border extracted_border_upper(true);
+			Border extracted_border_lower(false);
+			for(auto it : x_LU_set){
+				if(x_set_to_exclude.find(it) == x_set_to_exclude.end()){
+					if(valid_first){
+						x_range.second = it;
+						valid_second = true;
+					}
+					else {
+						valid_first = true;
+						x_range.first = it;
+					}
+				}
+				else {
+					if(valid_second){
+						//here we try to check if we have appropriate lower border
+						bool good_solution = false;
+						//std::cout<<"initial range try: "<<x_range.first<<" "<<x_range.second<<std::endl;
+						for(it_LL_border = lower_borders.begin(); it_LL_border != lower_borders.end(); it_LL_border++){
+							x_set_LL = it_LL_border->GetAllX();
+							x_start_LL = x_set_LL.lower_bound(x_range.first);
+							if(x_start_LL == x_set_LL.end())
+								continue;
+							x_end_LL = x_set_LL.upper_bound(x_range.second);
+							if(x_end_LL == x_set_LL.end())
+								continue;
+							x_end_LL--;
+							if(x_end_LL == x_start_LL)
+								continue;
+							good_solution = true;
+							x_range.first = *x_start_LL;
+							x_range.second = *x_end_LL;
+							//std::cout<<"final solution: "<<x_range.first<<" "<<x_range.second<<std::endl;
+							break;
+						}
+						if(good_solution)
+							break;
+						valid_first = false;
+						valid_second = false;
+					}
+					else{
+						valid_first = false;
+					}
+				}
+			}
+			if(valid_first && valid_second){
+				upper_borders.begin()->SplitBorderByXRange(x_range, extracted_border_upper, new_upper_borders);
+				it_LL_border->SplitBorderByXRange(x_range, extracted_border_lower, new_lower_borders);
+			}
+			else {
+				std::cout<<"Did not found good solution..."<<std::endl;
+			}
+				
+			std::cout<<"extracted upper: "<<std::endl;
+			extracted_border_upper.PrintBorder();
+			std::cout<<"extracted lower: "<<std::endl;
+			extracted_border_lower.PrintBorder();
+			std::cout<<"new split borders: "<<std::endl;
+			for(auto it : new_upper_borders)
+				it.PrintBorder();
+			for(auto it : new_lower_borders)
+				it.PrintBorder();
+			
+			//now we need to modify upper and lower borders from main vectors (to exchange with new borders)
+			//also need to sort borders - this was done in the beginning of loop
+			for(auto it : new_upper_borders)
+				upper_borders.emplace_back(it);
+			upper_borders.erase(upper_borders.begin());
+			lower_borders.erase(it_LL_border);
+			for(auto it : new_lower_borders)
+				lower_borders.emplace_back(it);
+			
+			//now we can create sweep contour from our borders
+			id tmp_ID = Contour::GetNextID();
+			all_contours.emplace( std::make_pair(tmp_ID, Contour(sweep, extracted_border_upper, extracted_border_lower, z)) );
+			sweep_contours.insert(tmp_ID);
+			AddToContoursByZ(z, tmp_ID);
+			PrintContour(tmp_ID);
+			
+			
+			
 			return true;
 		}
+		
 	void MakeTestContours(){
 		id tmp_ID = Contour::GetNextID();
 		all_contours.emplace( std::make_pair(tmp_ID, Contour(test::test_contour)) );
