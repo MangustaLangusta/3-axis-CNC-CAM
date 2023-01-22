@@ -3,6 +3,8 @@
 
 #define FIELD_WAYPOINTS { {-10, -10}, {-10, 110}, {110, 110}, {110, -10} }
 #define FIELD_HEIGHT 150
+#define MIN_X -10000
+#define MAX_X 10000
 
 
 struct BorderLink{
@@ -13,6 +15,7 @@ struct BorderLink{
 	bool start;
 	bool finish;
 	bool upper;	
+	
 	
 	friend bool operator< (const BorderLink &link_a, const BorderLink &link_b){
 		if (link_a.x < link_b.x) 
@@ -85,9 +88,15 @@ class Border{
 		}
 		
 		void AddLinkBack(BorderLink new_link){
+			std::cout<<"add link 1"<<std::endl;
 			std::list<BorderLink>::iterator *it_link;
 			*it_link = links.end();
+			std::cout<<"add link 2"<<std::endl;
 			this->EmplaceBorderLink(it_link, new_link);
+		}
+		
+		void AddLinkBackHealthy(BorderLink new_link){
+			links.push_back(new_link);
 		}
 		
 		void ReverseLinks() { 
@@ -131,7 +140,21 @@ class Border{
 		
 		Border(bool is_upper){
 			upper = is_upper;
+			links.clear();
 			std::cout<<"created Border"<<std::endl;
+		}
+		
+		Border(std::list<BorderLink> &new_links){
+			if(new_links.empty())
+				return;
+			min_y_point = max_y_point = new_links.begin()->coordinates;
+			upper = new_links.begin()->upper;
+			for(auto &it : new_links){
+				links.emplace_back(it);
+				all_x.insert(it.x);
+				min_y_point = it.y < min_y_point.y ? it.coordinates : min_y_point;
+				max_y_point = it.y > max_y_point.y ? it.coordinates : max_y_point;
+			}				
 		}
 		
 		~Border (){
@@ -190,53 +213,35 @@ class Border{
 			all_x.clear();
 		}
 		
-		std::vector<Border> SplitBorderByXRange(std::pair<float, float> x_range, Border &extracted_border){
-			std::vector<Border> new_borders;
-			BorderLink tmp_link;
-			std::back_insert_iterator <std::vector<Border>> it_border(new_borders); 
-			extracted_border = Border(upper);
-			bool start_extract = false;
-			bool first_split_allowed = true;
-			bool second_split_allowed = false;
-			std::cout<<"1"<<std::endl;
-			if(!upper)
-				x_range = std::make_pair(x_range.second, x_range.first);
-			for(auto it : links){
-				it.PrintBorderLink();
-				if(it.x == x_range.first){
-					std::cout<<"2"<<std::endl;
-					if(new_borders.size() != 0)
-						new_borders.rbegin()->AddLinkBack(it);
-					first_split_allowed = false;
-					second_split_allowed = false;	//just in case
-					start_extract = true;
-				}
-				if(start_extract){
-					std::cout<<"3"<<std::endl;
-					extracted_border.AddLinkBack(it);
-					if(it.x == x_range.second){
-						tmp_link = it;
-						second_split_allowed = true;
-						start_extract = false;
-					}
-				}
-				else{
-					if(first_split_allowed){
-						std::cout<<"4"<<std::endl;
-						it_border = Border(upper);
-						first_split_allowed = false;						
-					}
-					if(second_split_allowed){
-						std::cout<<"5"<<std::endl;
-						it_border = Border(upper);
-						new_borders.rbegin()->AddLinkBack(tmp_link);
-						second_split_allowed = false;
-					}
-					std::cout<<"6"<<std::endl;
-					new_borders.rbegin()->AddLinkBack(it);
-				}
+		std::list<BorderLink> CutLinksByXRange(std::pair<float, float> x_range){
+			std::list<BorderLink> extracted_list;
+			for(auto &it : links){
+				if((it.x >= x_range.first)&&(it.x <= x_range.second))
+					extracted_list.push_back(it);
+				if(((it.x > x_range.second) && upper)||((it.x < x_range.first) && !upper))
+					break;
 			}
-			return new_borders;
+			if(extracted_list.size() < 2)
+				extracted_list.clear();
+			return extracted_list;
+		}
+		
+		
+		
+		void SplitBorderByXRange(std::pair<float, float> x_range, std::list<BorderLink> &extracted_links, std::vector<std::list<BorderLink>> &split_links){
+			std::pair<float, float> first_split_range = std::make_pair(MIN_X, x_range.first);
+			std::pair<float, float> second_split_range = std::make_pair(x_range.second, MAX_X);
+			
+			std::list<BorderLink> first_split = CutLinksByXRange(first_split_range);
+			extracted_links = CutLinksByXRange(x_range);
+			std::list<BorderLink> second_split = CutLinksByXRange(second_split_range);
+			
+			split_links.clear();
+			if(!first_split.empty())
+				split_links.push_back(first_split);
+			if(!second_split.empty())
+				split_links.push_back(second_split);
+			
 		}
 		
 		/*
@@ -705,7 +710,8 @@ class ContoursAndPaths {
 			*/
 			std::set<float> x_LU_set, x_set_to_exclude, x_set_begins, x_set_ends, x_set_tmp, x_LL_set; 
 			std::vector<Border>::iterator it_LL_border, it_LU_border;
-			std::vector<Border> new_upper_borders, new_lower_borders;
+			std::list<BorderLink> new_upper_links, new_lower_links;
+			std::vector<std::list<BorderLink>> split_links_upper, split_links_lower;
 			std::pair<float, float> x_range;
 			std::set<float> x_set_LL;
 			std::set<float>::iterator x_start_LL, x_end_LL;
@@ -726,8 +732,6 @@ class ContoursAndPaths {
 				valid_first = false;
 				valid_second = false;
 				std::cout<<"before clearing of new borders"<<std::endl;
-				new_upper_borders.clear();
-				new_lower_borders.clear();
 				extracted_border_upper.ClearBorder();
 				extracted_border_lower.ClearBorder();
 				
@@ -808,43 +812,41 @@ class ContoursAndPaths {
 				}
 				
 //EVERYTHING LOOKS OK TILL THIS PLACE
-				
+				/*
+					new_upper_links, new_lower_links;
+					std::vector<std::list<BorderLink>> split_links_upper, split_links_lower;
+			*/
 				
 				
 				if(valid_first && valid_second){
 					std::cout<<"found x_range: "<<x_range.first<<" "<<x_range.second<<std::endl;
-					new_upper_borders = it_LU_border->SplitBorderByXRange(x_range, extracted_border_upper);
-					new_lower_borders = it_LL_border->SplitBorderByXRange(x_range, extracted_border_lower);
+					it_LU_border->SplitBorderByXRange(x_range, new_upper_links, split_links_upper);
+					it_LL_border->SplitBorderByXRange(x_range, new_lower_links, split_links_lower);
 				}
 				else {
 					std::cout<<"Did not found good solution..."<<std::endl;
 				}
 				
+				extracted_border_upper = Border(new_upper_links);
+				extracted_border_lower = Border(new_lower_links);
 					
+				
 				std::cout<<"extracted upper: "<<std::endl;
 				extracted_border_upper.PrintBorder();
 				std::cout<<"extracted lower: "<<std::endl;
 				extracted_border_lower.PrintBorder();
-				std::cout<<"new split borders: "<<new_upper_borders.size()<<" "<<new_lower_borders.size()<<std::endl;
-				for(auto &it : new_upper_borders)
-					it.PrintBorder();
-				for(auto &it : new_lower_borders)
-					it.PrintBorder();
 				
 				//now we need to modify upper and lower borders from main vectors (to exchange with new borders)
 				//also need to sort borders - this was done in the beginning of loop
 
 				upper_borders.erase(it_LU_border);
 				lower_borders.erase(it_LL_border);
-				for(auto &it : new_upper_borders)
-					upper_borders.emplace_back(it);
+				for(auto &it : split_links_upper)
+					upper_borders.emplace_back(Border(it));
+				for(auto &it : split_links_lower)
+					lower_borders.emplace_back(Border(it));
 				std::cout<<"added upper"<<std::endl;
 				
-				
-				
-				
-				for(auto &it : new_lower_borders)
-					lower_borders.emplace_back(it);
 				std::cout<<"added lower"<<std::endl;
 								
 				//now we can create sweep contour from our borders
@@ -864,7 +866,10 @@ class ContoursAndPaths {
 				std::cout<<std::endl;
 				
 				system("pause");
-				
+				char quit;
+				std::cin>>quit;
+				if(quit == 'q')
+					return true;
 			}
 			
 			
