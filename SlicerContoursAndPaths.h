@@ -158,7 +158,7 @@ class Border{
 		}
 		
 		~Border (){
-			std::cout<<"Border removed"<<std::endl;
+			//std::cout<<"Border removed"<<std::endl;
 		}
 		
 		friend bool operator< (const Border &border_a, const Border &border_b){
@@ -725,23 +725,23 @@ class ContoursAndPaths {
 			
 			
 			while(!upper_borders.empty() || !lower_borders.empty()) {
-				system("cls");
+				//system("cls");
 				x_set_begins.clear();
 				x_set_ends.clear();
 				x_set_to_exclude.clear();
 				valid_first = false;
 				valid_second = false;
-				std::cout<<"before clearing of new borders"<<std::endl;
+				//std::cout<<"before clearing of new borders"<<std::endl;
 				extracted_border_upper.ClearBorder();
 				extracted_border_lower.ClearBorder();
 				
-				std::cout<<"before sorting of borders"<<std::endl;
+				//std::cout<<"before sorting of borders"<<std::endl;
 				std::sort(upper_borders.begin(), upper_borders.end());
 				std::sort(lower_borders.begin(), lower_borders.end());
 			
 				it_LU_border = upper_borders.begin();
-				std::cout<<"upper border to work on:"<<std::endl;
-				it_LU_border->PrintBorder();
+				//std::cout<<"upper border to work on:"<<std::endl;
+				//it_LU_border->PrintBorder();
 				
 				//to find lowest upper border and upper borders that min_y < lowest upper border max_y
 				
@@ -764,9 +764,8 @@ class ContoursAndPaths {
 						x_set_to_exclude.insert(it);
 				}
 				//now x_set_to_exclude contains all intersected x of possible overcasting upper borders			
-				std::cout<<"found x_set_to_exclude"<<std::endl;
 				
-				
+				//std::cout<<"found x_set_to_exclude"<<std::endl;
 				for(auto it : x_LU_set){
 					if(x_set_to_exclude.find(it) == x_set_to_exclude.end()){
 						if(valid_first){
@@ -819,7 +818,7 @@ class ContoursAndPaths {
 				
 				
 				if(valid_first && valid_second){
-					std::cout<<"found x_range: "<<x_range.first<<" "<<x_range.second<<std::endl;
+					//std::cout<<"found x_range: "<<x_range.first<<" "<<x_range.second<<std::endl;
 					it_LU_border->SplitBorderByXRange(x_range, new_upper_links, split_links_upper);
 					it_LL_border->SplitBorderByXRange(x_range, new_lower_links, split_links_lower);
 				}
@@ -829,13 +828,12 @@ class ContoursAndPaths {
 				
 				extracted_border_upper = Border(new_upper_links);
 				extracted_border_lower = Border(new_lower_links);
-					
-				
+				/*
 				std::cout<<"extracted upper: "<<std::endl;
 				extracted_border_upper.PrintBorder();
 				std::cout<<"extracted lower: "<<std::endl;
 				extracted_border_lower.PrintBorder();
-				
+				*/
 				//now we need to modify upper and lower borders from main vectors (to exchange with new borders)
 				//also need to sort borders - this was done in the beginning of loop
 
@@ -845,31 +843,22 @@ class ContoursAndPaths {
 					upper_borders.emplace_back(Border(it));
 				for(auto &it : split_links_lower)
 					lower_borders.emplace_back(Border(it));
-				std::cout<<"added upper"<<std::endl;
-				
-				std::cout<<"added lower"<<std::endl;
 								
 				//now we can create sweep contour from our borders
 				tmp_ID = Contour::GetNextID();
 				all_contours.emplace( std::make_pair(tmp_ID, Contour(sweep, extracted_border_upper, extracted_border_lower, z)) );
 				sweep_contours.insert(tmp_ID);
 				AddToContoursByZ(z, tmp_ID);
+				/*
 				PrintContour(tmp_ID);
-				
 				std::cout<<"other upper borders: "<<std::endl;
 				for(auto it : upper_borders)
 					it.PrintBorder();
 				std::cout<<"other lower borders: "<<std::endl;
 				for(auto it : lower_borders)
-					it.PrintBorder();
-				
-				std::cout<<std::endl;
-				
-				system("pause");
-				char quit;
-				std::cin>>quit;
-				if(quit == 'q')
-					return true;
+					it.PrintBorder();*/
+				//std::cout<<std::endl;
+				//system("pause");
 			}
 			
 			
