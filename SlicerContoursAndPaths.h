@@ -467,13 +467,44 @@ class Contour{
 id Contour::next_ID = 1;
 
 
+class PathElement{
+	private:
+	
+	public:
+	
+};
+
+class PathLine : public PathElement{
+	private:
+	
+	public:
+	
+};
+
+class PathZTransfer : public PathElement{
+	
+	
+};
+
+class PathFastTravel : public PathElement{
+	private:
+	
+	public:
+	
+};
+
 class Path {
 	private:
 		Instrument used_instrument;
+		std::list<PathElement> elements;
 		float speed;
 		
 	public:
-		
+		Path(){
+			//waypoints should be so arranged, that: 
+			//-first waypoint is always most left (min x) point of contour
+			
+		}
 };
 
 
