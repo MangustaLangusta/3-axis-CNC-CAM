@@ -5,7 +5,7 @@
 #define FIELD_HEIGHT 150
 #define MIN_X -10000
 #define MAX_X 10000
-
+#define FEED_OVERLAP_RATIO 0.8 //how much part of instrument radius to be ovelapped
 
 struct BorderLink{
 	float x;
@@ -141,7 +141,7 @@ class Border{
 		Border(bool is_upper){
 			upper = is_upper;
 			links.clear();
-			std::cout<<"created Border"<<std::endl;
+			//std::cout<<"created Border"<<std::endl;
 		}
 		
 		Border(std::list<BorderLink> &new_links){
@@ -330,6 +330,10 @@ class Contour{
 		static id next_ID;
 		ContourType type;
 		std::vector<Point2D> waypoints;
+			//borders are used only for sweep contours//
+		Border upper_border = Border(true);												//
+		Border lower_border = Border(false);												//
+			//----------------------------------------//
 		float z;
 		bool loop;
 		Offset offset = 0;
@@ -422,6 +426,8 @@ class Contour{
 			ID = next_ID++;
 			type = sweep;
 			z = z_plane;
+			this->upper_border = upper_border;
+			this->lower_border = lower_border;
 			std::list<BorderLink> upper, lower;
 			upper_border.GetLinks(upper);
 			lower_border.GetLinks(lower);
@@ -452,6 +458,8 @@ class Contour{
 		float GetZ() { return z; }
 		bool IsLoop() { return loop; }
 		std::vector<Point2D> GetWaypoints() { return waypoints; }
+		Border GetUpperBorder() { return upper_border; }
+		Border GetLowerBorder() { return lower_border; }
 		/*void GetWaypoints(std::set<Point2D> &request_set){
 			for (auto it = waypoints.begin(); it != waypoints.end(); it++)
 				if(!request_set.insert(*it).second)
@@ -469,47 +477,85 @@ id Contour::next_ID = 1;
 
 class PathElement{
 	private:
-	
+		DekartCoords start;
+		DekartCoords finish;
+		Speed speed;				//float
+		PathType path_type;	//work or travel
 	public:
-	
+		
 };
 
-class PathLine : public PathElement{
-	private:
-	
-	public:
-	
-};
-
-class PathZTransfer : public PathElement{
-	
-	
-};
-
-class PathFastTravel : public PathElement{
-	private:
-	
-	public:
-	
-};
-
-class Path {
+class Path{
 	private:
 		Instrument used_instrument;
 		std::list<PathElement> elements;
-		float speed;
 		
 	public:
-		Path(){
+		Path(Border &upper_border, Border &lower_border, Instrument &new_instrument){
 			//waypoints should be so arranged, that: 
 			//-first waypoint is always most left (min x) point of contour
+			used_instrument = new_instrument;
+			float x_step = used_instrument.GetRadius() * FEED_OVERLAP_RATIO;
+			//LinearInterpolation(Point2D a, Point2D b, float x)
+			//ReverseLine()
+			//void CreateInterpolatedLinksByX(std::set<float> &x_coords_set)
+			std::set<float> all_x_set = upper_border.GetAllX();
+			std::set<float> new_x_set = all_x_set;
+			if(all_x_set.empty()){
+				std::cout<<"x_set of upper border is empty!"<<std::endl;
+				return;
+			}
+			float dx;
+			float prev_x = *(all_x_set.begin());
+			long steps;
+			/*
+			std::cout<<"all x:"<<std::endl;
+			for (auto it : new_x_set)
+				std::cout<<it<<" ";
+			std::cout<<std::endl;
+			*/
+			for(auto it : all_x_set){
+				dx = it - prev_x;
+				//std::cout<<"x = "<<it<<" prev = "<<prev_x<<" dx = "<<dx<<" steps = ";
+				if(dx == 0)
+					continue;
+				steps = ceil(dx / x_step);
+				dx = dx / steps;
+				//std::cout<<steps<<" new_dx = "<<dx<<std::endl;
+				for(auto i_steps = 1; i_steps < (long)steps; i_steps++){
+					new_x_set.insert(prev_x + dx * i_steps);
+					//std::cout<<"added "<<prev_x+dx*i_steps<<std::endl;
+				}
+				prev_x = it;
+			}
+			//now we have ready new set of x, need to insert new border links according to this new x set
+			upper_border.CreateInterpolatedLinksByX(new_x_set);
+			lower_border.CreateInterpolatedLinksByX(new_x_set);
+			upper_border.PrintBorder();
+			lower_border.PrintBorder();
 			
+				
 		}
+		
+		bool IsEmpty() { return !elements.empty(); }
 };
 
+class PathAggregator{
+	private:
+		std::list<Path> paths;
+		bool is_sewed;
+	public:
+		bool IsSewed(){ return is_sewed; }
+		void AddPath(Path new_path){
+			
+		}
+		void ArrangeAndSew(){
+			
+		}
+		
+};
 
-
-class ContoursAndPaths {
+class ContoursAndPaths{
 	private:
 		//Contour work_field = Contour(field, FIELD_WAYPOINTS, FIELD_HEIGHT);	//one field for all objects
 		std::map<id, Contour> all_contours;															//all contours are stored here
@@ -518,6 +564,7 @@ class ContoursAndPaths {
 		std::set<id> sweep_contours;																//all IDs of sweep contours
 		std::map<id, std::set<id>> contours_tree;										//jerarhy between contours
 		std::map<float, std::set<id>> contours_by_z;									//IDs sorted by z-coordinate
+		PathAggregator all_paths;                                   //all path stored here
 		
 		std::set<id> test_contours;
 		
@@ -539,6 +586,16 @@ class ContoursAndPaths {
 				return true;
 			}
 			return false;
+		}
+		bool GetBordersByID(id request, Border &upper, Border &lower){
+			auto it = all_contours.find(request);
+			if(it != all_contours.end()){
+				upper = it->second.GetUpperBorder();
+				lower = it->second.GetLowerBorder();
+				return true;
+			}
+			return false;
+			
 		}
 		void PrintContour(id request){
 			if (GetContourByID(request))
@@ -897,6 +954,31 @@ class ContoursAndPaths {
 			return true;
 		}
 		
+	void MakePathFromSweepContour(id sweep_contour_id, Instrument &used_instrument){
+		Border upper_border = Border(true);
+		Border lower_border = Border(false);
+		//bool GetBordersByID(id request, Border &upper, Border &lower)
+		if(!GetBordersByID(sweep_contour_id, upper_border, lower_border)){
+			std::cout<<"Warning: sweep contour does not exist"<<std::endl;
+			return;
+		}
+		std::cout<<"making path..."<<std::endl;
+		//Path(Border &upper_border, Border &lower_border, Instrument &new_instrument)
+		Path new_path(upper_border, lower_border, used_instrument);		
+		all_paths.AddPath(new_path);
+	}
+	
+	void MakePathsFromAllSweepContours(Instrument &used_instrument){
+		Contour *pt_contour;
+		
+		for(auto &it : sweep_contours){
+			pt_contour = GetContourByID(it);
+			pt_contour->PrintContour();
+			MakePathFromSweepContour(it, used_instrument);
+		}
+		
+	}
+		
 	void MakeTestContours(){
 		id tmp_ID = Contour::GetNextID();
 		all_contours.emplace( std::make_pair(tmp_ID, Contour(test::test_contour)) );
@@ -907,6 +989,8 @@ class ContoursAndPaths {
 		test_contours.insert(tmp_ID);
 		AddToContoursByZ(test::test_z, tmp_ID);
 	}
+	
+	
 };
 
 

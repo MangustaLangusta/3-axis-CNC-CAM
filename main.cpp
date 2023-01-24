@@ -167,6 +167,7 @@ void CreateGCode(std::string input_file_name){
 	contours_and_paths.MakeEquidistantContours(10, contours_and_paths.GetAllRawContoursIDs());
 	contours_and_paths.MakeTestContours();
 	contours_and_paths.MakeSweepContours(test::test_z);
+	contours_and_paths.MakePathsFromAllSweepContours(test::test_instrument);
 }
 
 

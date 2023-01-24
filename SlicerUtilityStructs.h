@@ -3,8 +3,10 @@
 
 enum ContourType { field, raw, equidistant, sweep };
 enum AngleType { obtuse, sharp, developed };
+enum PathType { travel, feed };
 typedef long long id;
 typedef float Offset;
+typedef float Speed;
 
 struct Point2D;
 struct Line2D;
@@ -67,13 +69,6 @@ struct Line2D{
 		}
 		normal.x = Dy / len;		//cos90 dx + sin90 dy
 		normal.y = -Dx / len;		//cos90 dy - sin90 dx
-		/*
-		std::tuple<float,float,float> eq;
-		if(GetEquasionMembers(eq))
-			normal = {std::get<0>(eq), std::get<1>(eq)};
-		else 
-			return false;
-		*/
 		return true;
 	}
 	bool GetEquasionMembers(std::tuple<float, float, float> &equasion_members) {
@@ -103,6 +98,7 @@ struct Line2D{
 			std::cout<<"Equasion members not solved, fix this!"<<std::endl;
 		return false;
 	}
+	void ReverseLine() { std::swap(a,b); }
 	void print_line(){
 		std::cout<<a.x<<" "<<a.y<<" / "<<b.x<<" "<<b.y<<std::endl;
 	}
@@ -201,10 +197,14 @@ AngleType CheckAngleType(Line2D &line_a, Line2D &line_b){
 }
 
 Point2D LinearInterpolation(Point2D a, Point2D b, float x){
+	if(a.x == b.x) 
+		return b;
 	float ratio = (x-a.x)/(b.x-a.x);
 	float dy = b.y-a.y;
 	return Point2D{x, a.y + dy * ratio};
 }
+
+
 
 void ConsoleHex(std::string s, int len){
 	std::cout.unsetf(std::ios::dec);

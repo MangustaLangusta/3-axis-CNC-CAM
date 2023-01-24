@@ -1,19 +1,29 @@
 #ifndef SLICER_INSTRUMENTS_H
 #define SLICER_INSTRUMENTS_H
 
-struct Instrument{
-	std::string name;
-	float nozzle_diameter_mm;
-	float feed_rate;		//xy-movement across material
-	float plunge_rate;	//z-movement across material
-	float allowable_surface_tilt_angle_rad;
+class Instrument{
+	private:
+		std::string name;
+		float nozzle_radius_mm;
+		float feed_rate;		//xy-movement across material
+		float plunge_rate;	//z-movement across material
+		float allowable_surface_tilt_angle_rad;
+	public:
+		Instrument(){};
+		Instrument(std::string new_name, float new_radius, float new_feed_rate, float new_plunge_rate, float new_tilt){
+			nozzle_radius_mm = new_radius;
+			feed_rate = new_feed_rate;
+			plunge_rate = new_plunge_rate;
+			allowable_surface_tilt_angle_rad = new_tilt;
+		}
+		float GetRadius() { return nozzle_radius_mm; }
 };
 
 class InstrumentsSet {
 	private:
 		std::vector<Instrument> all_instruments;
 		Instrument current_instrument;
-	public:
+	public:/*
 		bool GetInstrumentsFromFile(std::string file_name){
 			std::ifstream f_input(file_name);
 			Instrument instr;
@@ -47,7 +57,7 @@ class InstrumentsSet {
 			}
 			return false;	
 		}
-		Instrument GetCurrentInstrument() {return current_instrument;} 
+		Instrument GetCurrentInstrument() {return current_instrument;} */
 };
 
 
