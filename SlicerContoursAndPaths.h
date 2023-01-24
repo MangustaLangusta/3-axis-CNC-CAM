@@ -531,8 +531,11 @@ class Path{
 			//now we have ready new set of x, need to insert new border links according to this new x set
 			upper_border.CreateInterpolatedLinksByX(new_x_set);
 			lower_border.CreateInterpolatedLinksByX(new_x_set);
-			upper_border.PrintBorder();
-			lower_border.PrintBorder();
+			//upper_border.PrintBorder();
+			//lower_border.PrintBorder();
+			std::list<BorderLink> upper_links, lower_links;
+			upper_border.GetLinks(upper_links);
+			lower_border.GetLinks(lower_links);
 			
 				
 		}
