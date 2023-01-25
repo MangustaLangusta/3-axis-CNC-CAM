@@ -1,7 +1,7 @@
 #ifndef SLICER_CONTOURS_AND_PATHS_H
 #define SLICER_CONTOURS_AND_PATHS_H
 
-#define FIELD_WAYPOINTS { {-10, -10}, {-10, 110}, {110, 110}, {110, -10} }
+#define FIELD_WAYPOINTS { {-20, -20}, {-20, 110}, {110, 110}, {110, -20} }
 #define FIELD_HEIGHT 150
 #define MIN_X -10000
 #define MAX_X 10000
@@ -446,12 +446,14 @@ class Contour{
 			if(*waypoints.begin() == *waypoints.rbegin())
 				waypoints.pop_back();
 		}
+		/*
 		//force contour -- for testing
 		Contour(std::vector<Point2D> wpts){
 			ID = next_ID++;
 			waypoints = wpts;
 			z = test::test_z;
 		}
+		*/
 		id GetID() { return ID; }
 		ContourType GetType() { return type; }
 		static id GetNextID() { return next_ID; }
@@ -651,6 +653,8 @@ class ContoursAndPaths{
 		void SetZOffset(float new_z_offset_mm) { z_offset_mm = new_z_offset_mm; }
 		void SetPrecision(float new_precision_mm) { precision = new_precision_mm; }
 		
+		std::set<id> GetAllEquidistantContoursIDs() { return equidistant_contours; }
+		
 		std::set<id> GetTestContoursIDs() { return test_contours; }
 		
 		std::set<id> GetAllRawContoursIDs() { return raw_contours; }
@@ -765,16 +769,26 @@ class ContoursAndPaths{
 			std::cout<<"Start making sweep contours.."<<std::endl;
 			std::vector<Point2D> wpts;
 			std::set<id> ID_set_by_z = it_z->second;
-
+			std::set<id> ID_equidistant_contorus = GetAllEquidistantContoursIDs();
+			std::vector<id> ID_set_to_make;
+			
+			std::set_intersection(ID_set_by_z.begin(), ID_set_by_z.end(), ID_equidistant_contorus.begin(), ID_equidistant_contorus.end(),
+                          std::back_inserter(ID_set_to_make));
+			
+			for(auto &it : ID_set_to_make)
+				std::cout<<it<<" ";
+			std::cout<<std::endl;
+			
 			//Now we have set of all points, 
 			//this set is sorted by x (smallest to largest) and (if x1 == x2) by y (smallest to largest)
 			
 			std::vector<std::vector<Point2D>> upper_bounds, lower_bounds;
 			std::vector<Border> lower_borders, upper_borders;
 			std::set<float> all_x;
-			for(auto it : ID_set_by_z){
-				if(it == 0)
+			for(auto it : ID_set_to_make){
+				/*if(it == 0)
 					continue;
+				*/
 				std::cout<<"ID = "<<it<<std::endl;
 				PrintContour(it);
 				SplitContourIntoBorders(it, upper_bounds, lower_bounds);
@@ -791,11 +805,14 @@ class ContoursAndPaths{
 			for(auto &it : upper_borders)
 				it.ExtractAllXCoordinates(all_x);
 		
-			for(auto &it : lower_borders)
+			for(auto &it : lower_borders){
 				it.CreateInterpolatedLinksByX(all_x);
-			for(auto &it : upper_borders)
+				it.PrintBorder();
+			}
+			for(auto &it : upper_borders){
 				it.CreateInterpolatedLinksByX(all_x);
-			
+				it.PrintBorder();
+			}
 			/*
 			variables used in following loop
 			*/
@@ -981,7 +998,7 @@ class ContoursAndPaths{
 		}
 		
 	}
-		
+	/*
 	void MakeTestContours(){
 		id tmp_ID = Contour::GetNextID();
 		all_contours.emplace( std::make_pair(tmp_ID, Contour(test::test_contour)) );
@@ -992,7 +1009,7 @@ class ContoursAndPaths{
 		test_contours.insert(tmp_ID);
 		AddToContoursByZ(test::test_z, tmp_ID);
 	}
-	
+	*/
 	
 };
 
