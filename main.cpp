@@ -177,9 +177,10 @@ void CreateGCode(std::string input_file_name){
 
 
 int main(){
-	
+		//LATER TO MAKE SPECIAL FUNCTION FOR THIS ****************************
+	Coordinate::SetPrecision(static_cast<Precision>(DEFAULT_PRECISION));
+		//********************************************************************
 	CreateGCode("test.STL");
-	
 	
 	/*
 	std::string title, amount, facets;

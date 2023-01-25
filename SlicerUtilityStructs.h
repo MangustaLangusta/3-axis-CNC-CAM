@@ -1,12 +1,17 @@
 #ifndef SLICER_UTILITY_STRUCTS_H
 #define SLICER_UTILITY_STRUCTS_H
 
+#define DEFAULT_PRECISION 0.01
+
 enum ContourType { field, raw, equidistant, sweep };
 enum AngleType { obtuse, sharp, developed };
 enum PathType { travel, feed };
 typedef long long id;
 typedef float Offset;
 typedef float Speed;
+typedef float Precision;
+
+struct Coordinate;
 
 struct Point2D;
 struct Line2D;
@@ -16,6 +21,27 @@ struct Matrix2D;
 bool Lines2DIntercept(std::tuple<float, float, float> line_a, std::tuple<float, float, float> line_b, Point2D &result);
 bool Lines2DIntercept(Line2D line_a, Line2D line_b, Point2D &intercept);
 
+class Coordinate{
+	private:
+		static inline Precision coordinates_precision;
+		void Truncate() { value = coordinates_precision * (long long)(value / coordinates_precision);	}
+		friend Coordinate operator/ (Coordinate a, Coordinate b){
+			Coordinate result;
+			result.value = a.value / b.value;
+			result.Truncate();
+			return result;
+		}
+	public:
+		double value;
+		static void SetPrecision(Precision new_precision) { coordinates_precision = new_precision;	}
+		Coordinate operator= (double a){
+			this->value = a;
+			this->Truncate();
+			return *this;
+		}
+	
+	
+};
 
 struct DekartCoords{
 	float x;
