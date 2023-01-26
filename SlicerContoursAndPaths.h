@@ -244,64 +244,6 @@ class Border{
 			
 		}
 		
-		/*
-		void SplitBorderByXRange(std::pair<float, float> x_range, Border &extracted_border, std::vector <Border> &new_borders){
-			std::cout<<"SplitBorderByXRange"<<std::endl;
-			bool start_extract = false;
-			bool first_split_allowed = true;
-			bool second_split_allowed = false;
-			if(!upper)
-				x_range = std::make_pair(x_range.second, x_range.first);
-			for(auto it : links){
-				
-				if(start_extract){
-					if(upper){
-						extracted_border.AddLinkBack(it);
-						extracted_border.GetLastLink().PrintBorderLink();
-					}
-					else{
-						extracted_border.AddLinkFront(it);
-						extracted_border.GetFirstLink().PrintBorderLink();
-					}
-					if(it.x == x_range.second){
-						start_extract = false;
-						second_split_allowed = true;
-						first_split_allowed = false;
-					}
-					continue;
-				}
-				if(it.x == x_range.first){
-					start_extract = true;
-					if(upper){
-						extracted_border.AddLinkBack(it);
-					}
-					else{
-						extracted_border.AddLinkFront(it);
-					}
-					continue;
-				}
-				if (first_split_allowed){
-					new_borders.emplace_back(Border(upper));
-					first_split_allowed = false;
-				}
-				if (second_split_allowed){
-					new_borders.emplace_back(Border(upper));
-					if(upper)
-						new_borders.rbegin()->AddLinkBack(extracted_border.GetLastLink());
-					else
-						new_borders.rbegin()->AddLinkBack(extracted_border.GetFirstLink());
-					second_split_allowed = false;
-				}
-				if(upper)
-					new_borders.rbegin()->AddLinkBack(it);
-				else
-					new_borders.rbegin()->AddLinkFront(it);
-			}			
-			std::cout<<" loop done"<<std::endl;
-			system("pause");
-		}
-		*/
-		
 		void GetLinks(std::list<BorderLink> &links_set) {
 			for(auto &it : links)
 				links_set.push_back(it);
@@ -316,7 +258,7 @@ class Border{
 		}
 		
 		void PrintBorder() {
-			std::cout<<"border min_y = "<<min_y_point.y<<" max_y = "<<max_y_point.y<<"size = "<<links.size()<<std::endl;
+			std::cout<<"border min_y = "<<min_y_point.y<<" max_y = "<<max_y_point.y<<" size = "<<links.size()<<std::endl;
 			for(auto it = links.begin(); it != links.end(); it++)
 				it->PrintBorderLink();
 		}
@@ -363,10 +305,11 @@ class Contour{
 			}
 			for(auto &it : precise_waypoints)
 				waypoints.push_back(it);
-			
+			/*
 			std::cout<<"Created raw contour: "<<std::endl;
 			for(auto &it : waypoints)
 				it.print_point();
+			*/
 		}
 		//equidistant contour
 		Contour(Contour* parent, Offset init_offset, Coordinate &z_plane){
@@ -634,9 +577,11 @@ class ContoursAndPaths{
 		}
 		bool ExtractRawContoursFromLinesSet(std::vector<PreciseLine2D> *lines_set, double z){
 			std::multimap <PrecisePoint2D, PrecisePoint2D> lines_association;
+			/*
 			std::cout<<"lines set to print:"<<std::endl;
 			for(auto &it : *lines_set)
 				it.PrintLine();
+			*/
 			for(auto it = lines_set->begin(); it != lines_set->end(); it++){
 				lines_association.insert(std::pair<PrecisePoint2D, PrecisePoint2D> (it->a, it->b) );
 			}

@@ -2,6 +2,7 @@
 #define SLICER_UTILITY_STRUCTS_H
 
 #define DEFAULT_PRECISION 0.01
+#define PRECISE_COORDINATES_PRECISION 0.001
 
 enum ContourType { field, raw, equidistant, sweep };
 enum AngleType { obtuse, sharp, developed };
@@ -83,15 +84,23 @@ struct PreciseDekartCoords{
 	double x = 0;
 	double y = 0;
 	double z = 0;
+	void ReducePrecision(){
+		const double precision = PRECISE_COORDINATES_PRECISION;
+		x = precision * (long long)(x / precision);
+		y = precision * (long long)(y / precision);
+		z = precision * (long long)(z / precision);
+	}
 	void MakeCoords(double f[3]){
 		x = f[0];
 		y = f[1];
 		z = f[2];
+		ReducePrecision();
 	}
 	void MakeCoords(float f[3]){
 		x = f[0];
 		y = f[1];
 		z = f[2];
+		ReducePrecision();
 	}
 	void PrintCoord(){ std::cout<<x<<" "<<y<<" "<<z<<std::endl;	}
 };

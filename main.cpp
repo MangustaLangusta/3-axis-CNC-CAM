@@ -58,7 +58,7 @@ Facet GetFacet(std::string s){
 			memcpy(pf_dest, pch_src, 4);
 			count_axis++;
 			if(count_axis == 3){
-				std::cout<<point[0]<<" "<<point[1]<<" "<<point[2]<<std::endl;
+				//std::cout<<point[0]<<" "<<point[1]<<" "<<point[2]<<std::endl;
 				point_coord.MakeCoords(point);
 				count_axis = 0;
 				switch(count_points){
@@ -82,7 +82,7 @@ Facet GetFacet(std::string s){
 		}
 		count_bytes++;
 	}
-	result.PrintFacet();
+	//result.PrintFacet();
 	result.max_z = result.vertex_vector[0].z;
 	result.min_z = result.vertex_vector[0].z;
 	for (int i = 1; i < 3; i++){
@@ -163,7 +163,6 @@ void CreateGCode(std::string input_file_name){
 	contours_and_paths.SetZOffset(1);
 	CreateFacetsVector(input_file_name, &facets_set);
 	contours_and_paths.MakeRawContours(&facets_set);
-	return;
 	contours_and_paths.MakeEquidistantContours(10, contours_and_paths.GetAllRawContoursIDs());
 	contours_and_paths.PrintAllContours();
 	contours_and_paths.MakeSweepContours(45);	//for testing purposes
