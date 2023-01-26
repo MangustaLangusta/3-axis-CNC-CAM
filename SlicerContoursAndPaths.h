@@ -8,8 +8,8 @@
 #define FEED_OVERLAP_RATIO 0.8 //how much part of instrument radius to be ovelapped
 
 struct BorderLink{
-	float x;
-	float y;
+	Coordinate x;
+	Coordinate y;
 	Point2D coordinates;
 	std::vector<Point2D> additional_points;	//connected ponts with same x-coordinate, meaningless for alghoritm being used
 	bool start;
@@ -29,7 +29,7 @@ struct BorderLink{
 		return false;
 	}
 	
-	friend bool operator< (const BorderLink &link, const float x){
+	friend bool operator< (const BorderLink &link, const Coordinate x){
 		return (link.x < x);
 	}
 	
@@ -45,7 +45,7 @@ struct BorderLink{
 class Border{
 	private:
 		std::list<BorderLink> links;
-		std::set<float> all_x;
+		std::set<Coordinate> all_x;
 		Point2D min_y_point;
 		Point2D max_y_point;
 		bool upper;
@@ -109,8 +109,8 @@ class Border{
 
 	public:
 		Border(bool upper_border, std::vector<Point2D> source_points){
-			float x;
-			float y;
+			Coordinate x;
+			Coordinate y;
 			Point2D coordinates;
 			std::vector<Point2D> points;
 			upper = upper_border;
@@ -165,20 +165,20 @@ class Border{
 			return border_a.min_y_point.y < border_b.min_y_point.y;
 		}
 		
-		float GetMinY(){ return min_y_point.y; }
-		float GetMaxY() { return max_y_point.y; }
-		float GetXBegin()  { return *all_x.begin(); }
-		float GetXEnd() { return *all_x.rbegin(); }
-		std::set<float> GetAllX() { return all_x; }
+		Coordinate GetMinY(){ return min_y_point.y; }
+		Coordinate GetMaxY() { return max_y_point.y; }
+		Coordinate GetXBegin()  { return *all_x.begin(); }
+		Coordinate GetXEnd() { return *all_x.rbegin(); }
+		std::set<Coordinate> GetAllX() { return all_x; }
 		
-		void ExtractAllXCoordinates(std::set<float> &x_set){ 
+		void ExtractAllXCoordinates(std::set<Coordinate> &x_set){ 
 			for(auto it : all_x)
 				x_set.insert(it); 
 		}
 		
-		void CreateInterpolatedLinksByX(std::set<float> &x_coords_set){
+		void CreateInterpolatedLinksByX(std::set<Coordinate> &x_coords_set){
 			std::list<BorderLink>::iterator it_next = links.begin();
-			std::set<float>::iterator it_biggest, it_smallest;
+			std::set<Coordinate>::iterator it_biggest, it_smallest;
 			Point2D new_point;
 			for(auto it = links.begin(); it != links.end(); it++){
 				it_next = it;
@@ -213,7 +213,7 @@ class Border{
 			all_x.clear();
 		}
 		
-		std::list<BorderLink> CutLinksByXRange(std::pair<float, float> x_range){
+		std::list<BorderLink> CutLinksByXRange(std::pair<Coordinate, Coordinate> x_range){
 			std::list<BorderLink> extracted_list;
 			for(auto &it : links){
 				if((it.x >= x_range.first)&&(it.x <= x_range.second))
@@ -228,9 +228,9 @@ class Border{
 		
 		
 		
-		void SplitBorderByXRange(std::pair<float, float> x_range, std::list<BorderLink> &extracted_links, std::vector<std::list<BorderLink>> &split_links){
-			std::pair<float, float> first_split_range = std::make_pair(MIN_X, x_range.first);
-			std::pair<float, float> second_split_range = std::make_pair(x_range.second, MAX_X);
+		void SplitBorderByXRange(std::pair<Coordinate, Coordinate> x_range, std::list<BorderLink> &extracted_links, std::vector<std::list<BorderLink>> &split_links){
+			std::pair<Coordinate, Coordinate> first_split_range = std::make_pair(MIN_X, x_range.first);
+			std::pair<Coordinate, Coordinate> second_split_range = std::make_pair(x_range.second, MAX_X);
 			
 			std::list<BorderLink> first_split = CutLinksByXRange(first_split_range);
 			extracted_links = CutLinksByXRange(x_range);
@@ -334,24 +334,25 @@ class Contour{
 		Border upper_border = Border(true);												//
 		Border lower_border = Border(false);												//
 			//----------------------------------------//
-		float z;
+		Coordinate z;
 		bool loop;
 		Offset offset = 0;
 	public:
 		//raw contour
-		Contour(std::multimap <Point2D, Point2D> *lines_association, float z_plane){
+		Contour(std::multimap <PrecisePoint2D, PrecisePoint2D> *lines_association, double z_plane){
 			ID = next_ID++;					//update ID 
 			z = z_plane;
 			type = raw;
-			std::multimap <Point2D, Point2D>::iterator lines_iter = lines_association->begin();
-			waypoints.push_back(lines_iter->first);
+			std::vector<PrecisePoint2D> precise_waypoints; 	//preliminary waypoints
+			std::multimap <PrecisePoint2D, PrecisePoint2D>::iterator lines_iter = lines_association->begin();
+			precise_waypoints.push_back(lines_iter->first);
 			while(lines_iter != lines_association->end()){
-				waypoints.push_back(lines_iter->second);
+				precise_waypoints.push_back(lines_iter->second);
 				lines_association->erase(lines_iter);
-				lines_iter = lines_association->find(*waypoints.rbegin());
+				lines_iter = lines_association->find(*precise_waypoints.rbegin());
 			}
-			if(waypoints[0] == waypoints[waypoints.size()-1]){
-				waypoints.pop_back();
+			if(precise_waypoints[0] == precise_waypoints[precise_waypoints.size()-1]){
+				precise_waypoints.pop_back();
 				loop = true;
 			}
 			/*
@@ -360,9 +361,15 @@ class Contour{
 			else{
 				loop = false;
 			}
+			for(auto &it : precise_waypoints)
+				waypoints.push_back(it);
+			
+			std::cout<<"Created raw contour: "<<std::endl;
+			for(auto &it : waypoints)
+				it.print_point();
 		}
 		//equidistant contour
-		Contour(Contour* parent, Offset init_offset, float &z_plane){
+		Contour(Contour* parent, Offset init_offset, Coordinate &z_plane){
 			ID = next_ID++;					//update ID 
 			parent_ID = parent->GetID();
 			z = parent->GetZ();
@@ -379,7 +386,7 @@ class Contour{
 			Line2D equidist_line_b = DrawEquidistantLine(base_line_b, offset);
 			Line2D bissectris, bissectris_normal;
 			Point2D equidist_lines_intercept, bissectris_intercept, bissectris_normal_b, wpt_a, wpt_b;
-			float ratio;
+			Coordinate ratio;
 			AngleType angle_type;
 			do {
 				//0. Проверяем угол, который обводим (острый, тупой или развернутый). 
@@ -393,8 +400,8 @@ class Contour{
 						bissectris_intercept = {base_waypoints[target].x + bissectris.GetDx() * ratio, 
 																		base_waypoints[target].y + bissectris.GetDy() * ratio};
 						bissectris.GetNormal(bissectris_normal_b);
-						bissectris_normal_b.x += bissectris_intercept.x;
-						bissectris_normal_b.y += bissectris_intercept.y;
+						bissectris_normal_b.x = bissectris_normal_b.x + bissectris_intercept.x;
+						bissectris_normal_b.y = bissectris_normal_b.y + bissectris_intercept.y;
 						bissectris_normal = {bissectris_intercept, bissectris_normal_b};
 						if(Lines2DIntercept(equidist_line_a, bissectris_normal, wpt_a))
 							waypoints.push_back(wpt_a);
@@ -411,7 +418,7 @@ class Contour{
 			}while(target != 0);			
 		}
 		//field contour
-		Contour(ContourType new_type, std::vector<Point2D> wtps, float height){
+		Contour(ContourType new_type, std::vector<Point2D> wtps, Coordinate height){
 			if (new_type == field){
 				ID = 0;
 				type = field;
@@ -422,7 +429,7 @@ class Contour{
 				std::cout<<"WRONG CONSTRUCTOR OF CONTOUR CLASS (FIELD)"<<std::endl;
 		}
 		//sweep contour
-		Contour(ContourType new_type, Border &upper_border, Border &lower_border, const float &z_plane){
+		Contour(ContourType new_type, Border &upper_border, Border &lower_border, const Coordinate &z_plane){
 			ID = next_ID++;
 			type = sweep;
 			z = z_plane;
@@ -457,7 +464,7 @@ class Contour{
 		id GetID() { return ID; }
 		ContourType GetType() { return type; }
 		static id GetNextID() { return next_ID; }
-		float GetZ() { return z; }
+		Coordinate GetZ() { return z; }
 		bool IsLoop() { return loop; }
 		std::vector<Point2D> GetWaypoints() { return waypoints; }
 		Border GetUpperBorder() { return upper_border; }
@@ -497,18 +504,19 @@ class Path{
 			//waypoints should be so arranged, that: 
 			//-first waypoint is always most left (min x) point of contour
 			used_instrument = new_instrument;
-			float x_step = used_instrument.GetRadius() * FEED_OVERLAP_RATIO;
+			Coordinate x_step;
+			x_step = used_instrument.GetRadius() * FEED_OVERLAP_RATIO;
 			//LinearInterpolation(Point2D a, Point2D b, float x)
 			//ReverseLine()
 			//void CreateInterpolatedLinksByX(std::set<float> &x_coords_set)
-			std::set<float> all_x_set = upper_border.GetAllX();
-			std::set<float> new_x_set = all_x_set;
+			std::set<Coordinate> all_x_set = upper_border.GetAllX();
+			std::set<Coordinate> new_x_set = all_x_set;
 			if(all_x_set.empty()){
 				std::cout<<"x_set of upper border is empty!"<<std::endl;
 				return;
 			}
-			float dx;
-			float prev_x = *(all_x_set.begin());
+			Coordinate dx;
+			Coordinate prev_x = *(all_x_set.begin());
 			long steps;
 			/*
 			std::cout<<"all x:"<<std::endl;
@@ -521,11 +529,11 @@ class Path{
 				//std::cout<<"x = "<<it<<" prev = "<<prev_x<<" dx = "<<dx<<" steps = ";
 				if(dx == 0)
 					continue;
-				steps = ceil(dx / x_step);
-				dx = dx / steps;
+				steps = ceil(dx.value / x_step.value);
+				dx = dx.value / steps;
 				//std::cout<<steps<<" new_dx = "<<dx<<std::endl;
 				for(auto i_steps = 1; i_steps < (long)steps; i_steps++){
-					new_x_set.insert(prev_x + dx * i_steps);
+					new_x_set.insert(Coordinate(prev_x.value + dx.value * i_steps));
 					//std::cout<<"added "<<prev_x+dx*i_steps<<std::endl;
 				}
 				prev_x = it;
@@ -568,14 +576,13 @@ class ContoursAndPaths{
 		std::set<id> equidistant_contours;														//all IDs of equidistant contours
 		std::set<id> sweep_contours;																//all IDs of sweep contours
 		std::map<id, std::set<id>> contours_tree;										//jerarhy between contours
-		std::map<float, std::set<id>> contours_by_z;									//IDs sorted by z-coordinate
+		std::map<Coordinate, std::set<id>> contours_by_z;									//IDs sorted by z-coordinate
 		PathAggregator all_paths;                                   //all path stored here
 		
 		std::set<id> test_contours;
 		
-		float z_step_mm;
-		float z_offset_mm;
-		float precision;
+		Coordinate z_step_mm;
+		Coordinate z_offset_mm;
 ////////////////////////////////////////////////////////////////////////////////////////////
 		Contour* GetContourByID(id request){
 			auto it = all_contours.find(request);
@@ -584,7 +591,7 @@ class ContoursAndPaths{
 			else 
 				return NULL;
 		}
-		bool GetIDsByZ(float z, std::set<id> &request_set){
+		bool GetIDsByZ(Coordinate z, std::set<id> &request_set){
 			auto it = contours_by_z.find(z);
 			if (it != contours_by_z.end()){
 				request_set = it->second;
@@ -608,8 +615,8 @@ class ContoursAndPaths{
 			else 
 				std::cout<<"Attempt to print contour with ID "<<request<<" failed: Contour does not exist"<<std::endl;
 		}
-		void AddToContoursByZ(float z, id ID){
-			std::map<float, std::set<id>>::iterator it_z = contours_by_z.find(z);
+		void AddToContoursByZ(Coordinate z, id ID){
+			std::map<Coordinate, std::set<id>>::iterator it_z = contours_by_z.find(z);
 			if (it_z == contours_by_z.end()){
 				it_z = contours_by_z.insert( std::make_pair(z, std::set<id>{0, ID}) ).first;
 			}
@@ -625,10 +632,13 @@ class ContoursAndPaths{
 			}
 			return false;
 		}
-		bool ExtractRawContoursFromLinesSet(std::vector<Line2D> *lines_set, float z){
-			std::multimap <Point2D, Point2D> lines_association;
+		bool ExtractRawContoursFromLinesSet(std::vector<PreciseLine2D> *lines_set, double z){
+			std::multimap <PrecisePoint2D, PrecisePoint2D> lines_association;
+			std::cout<<"lines set to print:"<<std::endl;
+			for(auto &it : *lines_set)
+				it.PrintLine();
 			for(auto it = lines_set->begin(); it != lines_set->end(); it++){
-				lines_association.insert(std::pair<Point2D, Point2D> (it->a, it->b) );
+				lines_association.insert(std::pair<PrecisePoint2D, PrecisePoint2D> (it->a, it->b) );
 			}
 			//std::cout<<"Lines association done! Size: "<<lines_association.size()<<std::endl;
 			if(lines_association.empty())
@@ -649,15 +659,20 @@ class ContoursAndPaths{
 			all_contours.emplace( std::make_pair((id)0, Contour(field, FIELD_WAYPOINTS, FIELD_HEIGHT)) );
 			equidistant_contours.insert((id)0);
 		}
-		void SetZStep(float new_z_step_mm) { z_step_mm = new_z_step_mm; }
-		void SetZOffset(float new_z_offset_mm) { z_offset_mm = new_z_offset_mm; }
-		void SetPrecision(float new_precision_mm) { precision = new_precision_mm; }
+		void SetZStep(Coordinate new_z_step_mm) { z_step_mm = new_z_step_mm; }
+		void SetZOffset(Coordinate new_z_offset_mm) { z_offset_mm = new_z_offset_mm; }
 		
 		std::set<id> GetAllEquidistantContoursIDs() { return equidistant_contours; }
 		
 		std::set<id> GetTestContoursIDs() { return test_contours; }
 		
 		std::set<id> GetAllRawContoursIDs() { return raw_contours; }
+		
+		void PrintAllContours(){
+			for(auto &it : all_contours)
+				it.second.PrintContour();
+		}
+		
 ///////////////////////////////////////////////////////////////////////////////////////////
 		void SplitContourIntoBorders(id requested_ID, std::vector<std::vector<Point2D>> &upper_bounds, std::vector<std::vector<Point2D>> &lower_bounds){
 			std::vector<Point2D> cntr, new_bound_upper, new_bound_lower;
@@ -722,9 +737,9 @@ class ContoursAndPaths{
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
 		bool MakeRawContours(FacetsSet *facets_set){
-			std::vector<Line2D> lines_set;
-			float z;
-			long int layers = facets_set->GetMaxZ() / z_step_mm + z_offset_mm / z_step_mm;	//подсчитываем количество слоев
+			std::vector<PreciseLine2D> lines_set;
+			double z;
+			long int layers = facets_set->GetMaxZ() / z_step_mm.value + z_offset_mm.value / z_step_mm.value;	//подсчитываем количество слоев
 			if((z_offset_mm / z_step_mm) < 1)
 				layers++;
 			/*
@@ -732,12 +747,12 @@ class ContoursAndPaths{
 				пустое пространство находилось справа, а заполненное - слева
 			*/
 			for(long int i = layers; i >= 0; i--) {
-				z = i * z_step_mm;
+				z = i * z_step_mm.value;
 				/*
 					если есть хоть какое-нибудь пересечение набора фасетов и плоскости z, то входим в функцию
 					все пересечения (если были) сохранены в векторе lines_set. Линии не связаны. Нужно их связать.
 				*/
-				if( facets_set->InterceptionLinesOnZPlane(z, precision, &lines_set) ){										
+				if( facets_set->InterceptionLinesOnZPlane(z, &lines_set) ){										
 					ExtractRawContoursFromLinesSet(&lines_set, z);														//now we convet set of lines into contours 
 				}
 			}
@@ -748,7 +763,7 @@ class ContoursAndPaths{
 		bool MakeEquidistantContours(Offset offset, std::set<id> request_ids){
 			std::cout<<"Making euidistant contours.."<<std::endl;
 			id tmp_ID;
-			float tmp_z;
+			Coordinate tmp_z;
 			Contour *parent_contour;
 			for (auto it = request_ids.begin(); it != request_ids.end(); it++){
 				parent_contour = GetContourByID(*it);
@@ -762,7 +777,7 @@ class ContoursAndPaths{
 			return true;
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////
-		bool MakeSweepContours(float z){
+		bool MakeSweepContours(Coordinate z){
 			auto it_z = contours_by_z.find(z);
 			if (it_z == contours_by_z.end())
 				return false;
@@ -784,7 +799,7 @@ class ContoursAndPaths{
 			
 			std::vector<std::vector<Point2D>> upper_bounds, lower_bounds;
 			std::vector<Border> lower_borders, upper_borders;
-			std::set<float> all_x;
+			std::set<Coordinate> all_x;
 			for(auto it : ID_set_to_make){
 				/*if(it == 0)
 					continue;
@@ -816,13 +831,13 @@ class ContoursAndPaths{
 			/*
 			variables used in following loop
 			*/
-			std::set<float> x_LU_set, x_set_to_exclude, x_set_begins, x_set_ends, x_set_tmp, x_LL_set; 
+			std::set<Coordinate> x_LU_set, x_set_to_exclude, x_set_begins, x_set_ends, x_set_tmp, x_LL_set; 
 			std::vector<Border>::iterator it_LL_border, it_LU_border;
 			std::list<BorderLink> new_upper_links, new_lower_links;
 			std::vector<std::list<BorderLink>> split_links_upper, split_links_lower;
-			std::pair<float, float> x_range;
-			std::set<float> x_set_LL;
-			std::set<float>::iterator x_start_LL, x_end_LL;
+			std::pair<Coordinate, Coordinate> x_range;
+			std::set<Coordinate> x_set_LL;
+			std::set<Coordinate>::iterator x_start_LL, x_end_LL;
 			bool valid_first;
 			bool valid_second;
 			Border extracted_border_upper(true);

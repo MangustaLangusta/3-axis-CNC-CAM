@@ -3,10 +3,10 @@
 
 struct Facet{
 		long int id;
-		std::vector<DekartCoords> vertex_vector;
-		DekartCoords normal;
-		float max_z;
-		float min_z;
+		std::vector<PreciseDekartCoords> vertex_vector;
+		PreciseDekartCoords normal;
+		double max_z;
+		double min_z;
 		Facet(){
 			vertex_vector.resize(3);
 		}
@@ -22,19 +22,18 @@ struct Facet{
 class FacetsSet{
 	private:
 		std::vector<Facet> facets_vector;
-		float max_z;
-		bool InterceptionOfFacetAndZPlane(float z_plane, float precision, Facet facet, std::vector<Line2D> *interception_lines){
-			std::vector <Point2D> interception_points;
-			Point2D point;
-			DekartCoords dekart_point;
+		double max_z;
+		bool InterceptionOfFacetAndZPlane(double z_plane, Facet facet, std::vector<PreciseLine2D> *interception_lines){
+			std::vector <PrecisePoint2D> interception_points;
+			PrecisePoint2D point;
+			PreciseDekartCoords dekart_point;
 			if((facet.max_z >= z_plane)&&(facet.min_z <= z_plane)){
-				float delta_z, z1, z2;
+				double delta_z, z1, z2;
 				for(int i = 0; i < 3; i++){
 					z1 = facet.vertex_vector[i].z;
 					if (z1 == z_plane){
 						point.x = facet.vertex_vector[i].x;
 						point.y = facet.vertex_vector[i].y;
-						point.ReducePrecision(precision);
 						interception_points.push_back(point);
 						continue;
 					}
@@ -45,7 +44,6 @@ class FacetsSet{
 					if( ( (z1 > z_plane) && (z2 < z_plane) ) || ( (z1 < z_plane) && (z2 > z_plane) ) ) {
 						point.x = (facet.vertex_vector[(i+1) % 3].x - facet.vertex_vector[i].x) * (facet.vertex_vector[i].z - z_plane) / delta_z + facet.vertex_vector[i].x;
 						point.y = (facet.vertex_vector[(i+1) % 3].y - facet.vertex_vector[i].y) * (facet.vertex_vector[i].z - z_plane) / delta_z + facet.vertex_vector[i].y;
-						point.ReducePrecision(precision);
 						interception_points.push_back(point);	
 					}
 				}
@@ -84,14 +82,14 @@ class FacetsSet{
 				std::cout<<it->max_z<<" ";
 			std::cout<<std::endl;
 		}
-		float GetMaxZ(){return max_z;}
+		double GetMaxZ(){return max_z;}
 		
-		bool InterceptionLinesOnZPlane(float z_plane, float precision, std::vector<Line2D> *interception_lines) {
+		bool InterceptionLinesOnZPlane(double z_plane, std::vector<PreciseLine2D> *interception_lines) {
 			interception_lines->clear();
 			for(auto it = facets_vector.begin(); it != facets_vector.end(); it++){
 				if(it->max_z >= z_plane){
 					if(it->min_z <= z_plane){
-						InterceptionOfFacetAndZPlane(z_plane, precision, *it, interception_lines);
+						InterceptionOfFacetAndZPlane(z_plane, *it, interception_lines);
 					}
 				}
 				else 

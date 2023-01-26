@@ -38,7 +38,7 @@ Point with max z coordinate becomes first point in facet. General order of point
 */
 Facet GetFacet(std::string s){
 	Facet result;
-	DekartCoords point_coord;
+	PreciseDekartCoords point_coord;
 	int count_axis = 0;
 	int count_points = 0;
 	int count_bytes = 0;
@@ -46,8 +46,8 @@ Facet GetFacet(std::string s){
 	char c[4];
 	void *pch_src, *pf_dest;
 	void *pt = &c;
-	float max_z;
-	float min_z;
+	double max_z;
+	double min_z;
 	int max_z_point_number = 1;
 	for (auto it = s.begin(); it != s.end(); it++){
 		c[count_bytes] = *it;
@@ -58,6 +58,7 @@ Facet GetFacet(std::string s){
 			memcpy(pf_dest, pch_src, 4);
 			count_axis++;
 			if(count_axis == 3){
+				std::cout<<point[0]<<" "<<point[1]<<" "<<point[2]<<std::endl;
 				point_coord.MakeCoords(point);
 				count_axis = 0;
 				switch(count_points){
@@ -81,7 +82,7 @@ Facet GetFacet(std::string s){
 		}
 		count_bytes++;
 	}
-	//result.PrintFacet();
+	result.PrintFacet();
 	result.max_z = result.vertex_vector[0].z;
 	result.min_z = result.vertex_vector[0].z;
 	for (int i = 1; i < 3; i++){
@@ -125,7 +126,7 @@ void ProcessStlFile(std::string file_name, std::vector<std::string> *facets_st){
 	//std::cout<<"facets:"<<std::endl;
 	for (int i = 0; i < GetFacetsAmount(&amount); i++){
 		if (!ReadSymbols(50, &st, &fin))
-			std::cout<<"end of file reched but not all facets have been read! "<<i<<std::endl;
+			std::cout<<"end of file reached but not all facets have been read! "<<i<<std::endl;
 		facets_st->push_back(st);
 	}
 	if(ReadSymbols(1, &st, &fin))
@@ -160,11 +161,11 @@ void CreateGCode(std::string input_file_name){
 	ContoursAndPaths contours_and_paths;
 	contours_and_paths.SetZStep(5);
 	contours_and_paths.SetZOffset(1);
-	contours_and_paths.SetPrecision(0.01);
 	CreateFacetsVector(input_file_name, &facets_set);
 	contours_and_paths.MakeRawContours(&facets_set);
+	return;
 	contours_and_paths.MakeEquidistantContours(10, contours_and_paths.GetAllRawContoursIDs());
-	
+	contours_and_paths.PrintAllContours();
 	contours_and_paths.MakeSweepContours(45);	//for testing purposes
 	contours_and_paths.MakePathsFromAllSweepContours(test_instrument);
 	
