@@ -393,6 +393,34 @@ class Contour{
 					continue;
 				waypoints.emplace_back(it.coordinates);
 			}
+			/*
+			
+			checking waypoints overlapping (due to same x coordinate)		******************************
+			*/
+			std::vector<Point2D>::iterator prev_wpt;
+			std::vector<Point2D>::iterator current_wpt = prev_wpt = waypoints.end();
+			prev_wpt--;
+			prev_wpt--;
+			current_wpt--;
+			std::vector<Point2D>::iterator next_wpt = waypoints.begin();
+			for(next_wpt; next_wpt != waypoints.end(); next_wpt++){
+				if((prev_wpt->x == current_wpt->x)&&(current_wpt->x == next_wpt->x)){
+					double delta_big = fabs(prev_wpt->y.value - next_wpt->y.value);
+					double delta_1 = fabs(prev_wpt->y.value - current_wpt->y.value);
+					double delta_2 = fabs(current_wpt->y.value - next_wpt->y.value);
+					if((delta_big < delta_1) || (delta_big < delta_2)){
+						waypoints.erase(current_wpt);
+						if(current_wpt == waypoints.end())
+							current_wpt = waypoints.begin();
+						continue;
+					}
+				}
+				prev_wpt = current_wpt;
+				current_wpt = next_wpt;
+			}
+			/*
+			****************************************************************************************
+			*/
 			if(*waypoints.begin() == *waypoints.rbegin())
 				waypoints.pop_back();
 		}
