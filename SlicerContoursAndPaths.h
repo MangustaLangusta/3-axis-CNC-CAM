@@ -161,6 +161,39 @@ class Border{
 			//std::cout<<"Border removed"<<std::endl;
 		}
 		
+		void CutEdges(){
+			if(!links.empty()){
+				std::set<Point2D> candidates;
+				Point2D new_coordinates;
+				auto it_link = links.begin();
+				candidates.insert(it_link->coordinates);
+				for(auto it : it_link->additional_points)
+					candidates.insert(it);
+				it_link->additional_points.clear();
+				if(upper)
+					new_coordinates = {candidates.rbegin()->x, candidates.rbegin()->y};
+				else 
+					new_coordinates =  {candidates.begin()->x, candidates.begin()->y};
+				it_link->coordinates = new_coordinates;
+				it_link->x = new_coordinates.x;
+				it_link->y = new_coordinates.y;
+				candidates.clear();
+				it_link = links.end();
+				it_link--;
+				candidates.insert(it_link->coordinates);
+				for(auto it : it_link->additional_points)
+					candidates.insert(it);
+				it_link->additional_points.clear();
+				if(upper)
+					new_coordinates = {candidates.rbegin()->x, candidates.rbegin()->y};
+				else 
+					new_coordinates =  {candidates.begin()->x, candidates.begin()->y};
+				it_link->coordinates = new_coordinates;
+				it_link->x = new_coordinates.x;
+				it_link->y = new_coordinates.y;
+			}
+		}
+		
 		friend bool operator< (const Border &border_a, const Border &border_b){
 			return border_a.min_y_point.y < border_b.min_y_point.y;
 		}
@@ -423,6 +456,11 @@ class Contour{
 			*/
 			if(*waypoints.begin() == *waypoints.rbegin())
 				waypoints.pop_back();
+			this->upper_border.CutEdges();
+			this->lower_border.CutEdges();
+			std::cout<<"AFTER CUT EDGES:"<<std::endl;
+			this->upper_border.PrintBorder();
+			this->lower_border.PrintBorder();
 		}
 		/*
 		//force contour -- for testing
@@ -512,8 +550,8 @@ class Path{
 			//now we have ready new set of x, need to insert new border links according to this new x set
 			upper_border.CreateInterpolatedLinksByX(new_x_set);
 			lower_border.CreateInterpolatedLinksByX(new_x_set);
-			//upper_border.PrintBorder();
-			//lower_border.PrintBorder();
+			upper_border.PrintBorder();
+			lower_border.PrintBorder();
 			std::list<BorderLink> upper_links, lower_links;
 			upper_border.GetLinks(upper_links);
 			lower_border.GetLinks(lower_links);
@@ -981,7 +1019,7 @@ class ContoursAndPaths{
 		
 		for(auto &it : sweep_contours){
 			pt_contour = GetContourByID(it);
-			pt_contour->PrintContour();
+			//pt_contour->PrintContour();
 			MakePathFromSweepContour(it, used_instrument);
 		}
 		
