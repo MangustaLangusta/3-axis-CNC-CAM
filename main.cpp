@@ -9,15 +9,19 @@
 #include <algorithm>
 #include <map>
 
+
 #include "SlicerUtilityStructs.h"
 #include "SlicerFacets.h"
 #include "SlicerInstruments.h"
 #include "SlicerContoursAndPaths.h"
 
+/*    NEW CLASSES ARE BELOW   */
+#include "LogManager.h"
+#include "RawSTL.h"
 
 
-
-
+#define DEFAULT_INPUT_FILE_NAME "test.stl"
+#define DEFAULT_LOG_FILE_NAME "log.txt"
 
 /*
 Преобразует 4 символа в число в порядке от младшего байта к старшему
@@ -206,14 +210,6 @@ int main(){
 }
 
 
-
-
-/*
-class owl_man {} Yoshi;
-class owl_woman {} Coolya;
-pair <owl_man, owl_woman> lovely_family;
-lovely_family = make_pair(Yoshi, Coolya);
-*/
 
 
 
