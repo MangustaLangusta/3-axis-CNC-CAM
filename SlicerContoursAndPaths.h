@@ -160,7 +160,7 @@ class Border{
 		~Border (){
 			//std::cout<<"Border removed"<<std::endl;
 		}
-		
+/*		
 		void CutEdges(){
 			if(!links.empty()){
 				std::set<Point2D> candidates;
@@ -191,6 +191,41 @@ class Border{
 				it_link->coordinates = new_coordinates;
 				it_link->x = new_coordinates.x;
 				it_link->y = new_coordinates.y;
+			}
+		}
+*/
+		/*
+			Removes all points (including additional points), which are not present in wpts vector
+		*/
+		void RemoveExessiveWaypoints(const std::vector<Point2D> &wpts){
+			std::set<Point2D> wpts_set;
+			std::vector<Point2D> link_pts_vector;
+			for(auto &it : wpts)
+				wpts_set.insert(it);
+			for(auto &it_links : links){
+				link_pts_vector.clear();
+				link_pts_vector.push_back(it_links.coordinates);
+				for(auto it : it_links.additional_points)
+					link_pts_vector.push_back(it);
+				for(auto it_pts = link_pts_vector.begin(); it_pts != link_pts_vector.end(); it_pts++){
+					if(wpts_set.find(*it_pts) == wpts_set.end())
+						link_pts_vector.erase(it_pts);
+					if(it_pts == link_pts_vector.end())
+						break;
+				}
+				if(link_pts_vector.empty()){
+					std::cout<<"WARNING! NO BORDER LINK POINTS FOUND! function _RemoveExessiveWaypoints_"<<std::endl;
+					break;
+				}
+				it_links.coordinates = *link_pts_vector.begin();
+				it_links.x = it_links.coordinates.x;
+				it_links.y = it_links.coordinates.y;
+				link_pts_vector.erase(link_pts_vector.begin());
+				it_links.additional_points.clear();
+				while(!link_pts_vector.empty()){
+					it_links.additional_points.push_back(*link_pts_vector.begin());
+					link_pts_vector.erase(link_pts_vector.begin());
+				}	
 			}
 		}
 		
@@ -455,12 +490,12 @@ class Contour{
 			****************************************************************************************
 			*/
 			if(*waypoints.begin() == *waypoints.rbegin())
-				waypoints.pop_back();
-			this->upper_border.CutEdges();
-			this->lower_border.CutEdges();
+				waypoints.pop_back();/*
+			this->upper_border.RemoveExessiveWaypoints(waypoints);
+			this->lower_border.RemoveExessiveWaypoints(waypoints);
 			std::cout<<"AFTER CUT EDGES:"<<std::endl;
 			this->upper_border.PrintBorder();
-			this->lower_border.PrintBorder();
+			this->lower_border.PrintBorder();*/
 		}
 		/*
 		//force contour -- for testing
@@ -555,8 +590,6 @@ class Path{
 			std::list<BorderLink> upper_links, lower_links;
 			upper_border.GetLinks(upper_links);
 			lower_border.GetLinks(lower_links);
-			
-				
 		}
 		
 		bool IsEmpty() { return !elements.empty(); }
