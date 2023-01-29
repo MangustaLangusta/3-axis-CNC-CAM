@@ -54,6 +54,13 @@ struct STLTriangle{																														//
 		src = triangle_buff + NORMAL_ARRAY_SIZE + VERTEX_ARRAY_SIZE * 3;					//
 		memcpy(dest, src, ATTRIBUTE_SIZE);																				//
 	}																																						//
+	Triangle3D ConvertToTriangle(){
+		Triangle3D result_triangle;
+		result_triangle.vertex[0] = Point3D{v1[0], v1[1], v1[2]};
+		result_triangle.vertex[1] = Point3D{v2[0], v2[1], v2[2]};
+		result_triangle.vertex[2] = Point3D{v3[0], v3[1], v3[2]};
+		return result_triangle;
+	}
 };																																						//
 //***************************************************************************	//
 
@@ -98,8 +105,6 @@ class RawSTL{
 			/*	Triangles extracted, 
 					checking that eof reached		*/
 			fin.get();
-			if(fin.eof())
-				std::cout<<"eof"<<std::endl;
 			if(!fin.eof()){
 				std::cerr<<"Warning! All triangles extracted, but eof not reached!"<<std::endl;
 				triangles.clear();
@@ -122,7 +127,16 @@ class RawSTL{
 			if(valid == VALID)
 				return true;
 			return false;
+		}
+		const std::vector<Triangle3D> GetTriangles3D();
 };
+
+const std::vector<Triangle3D> RawSTL::GetTriangles3D() { 
+	std::vector<Triangle3D> result_triangles;
+	for(auto &it : triangles)
+		result_triangles.emplace_back(it.ConvertToTriangle());
+	return result_triangles;
+}
 
 
 

@@ -17,7 +17,11 @@
 */
 /*    NEW CLASSES ARE BELOW   */
 #include "LogManager.h"
+#include "BasicStructs.h"
+#include "Utility.h"
 #include "RawSTL.h"
+#include "Facets.h"
+#include "Config.h"
 
 
 #define DEFAULT_INPUT_FILE_NAME "test.stl"
@@ -188,7 +192,8 @@ void CreateGCode(std::string input_file_name){
 */
 
 int main(){
-	RawSTL(DEFAULT_INPUT_FILE_NAME);
+	RawSTL raw_stl(DEFAULT_INPUT_FILE_NAME);
+	CompositeFacetBody composite_facet_body(raw_stl.GetTriangles3D());
 	
 	/*
 		//LATER TO MAKE SPECIAL FUNCTION FOR THIS ****************************
