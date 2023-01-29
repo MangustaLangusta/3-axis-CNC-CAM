@@ -9,12 +9,12 @@
 #include <algorithm>
 #include <map>
 
-
+/*
 #include "SlicerUtilityStructs.h"
 #include "SlicerFacets.h"
 #include "SlicerInstruments.h"
 #include "SlicerContoursAndPaths.h"
-
+*/
 /*    NEW CLASSES ARE BELOW   */
 #include "LogManager.h"
 #include "RawSTL.h"
@@ -27,6 +27,7 @@
 Преобразует 4 символа в число в порядке от младшего байта к старшему
 Возвращает получившееся число - количество полигонов
 */
+/*
 int GetFacetsAmount(std::string *s){
 	int result = 0;
 	for(int i = 0; i < 4; i++){
@@ -34,12 +35,13 @@ int GetFacetsAmount(std::string *s){
 	}
 	return result;
 }
-
+*/
 /*
 Преобразует строку символов в объект класса facet, который и возвращает
 Point with max z coordinate becomes first point in facet. General order of points remains the same
 (rule of right hand: 1-2-3 or 2-3-1 or 3-1-2)
 */
+/*
 Facet GetFacet(std::string s){
 	Facet result;
 	PreciseDekartCoords point_coord;
@@ -97,12 +99,13 @@ Facet GetFacet(std::string s){
 	}
 	return result;
 }
-
+*/
 /*
 Читает символы из файла fin в количестве len и записывает по адресу s
 Возвращает true если не был достигнут конец файла
 Иначе возвращает false. По адресу s содержится то, что было прочитано в любом случае
 */
+/*
 bool ReadSymbols(int len, std::string *s, std::ifstream *fin){
 	s->clear();
 	char ch;
@@ -115,12 +118,13 @@ bool ReadSymbols(int len, std::string *s, std::ifstream *fin){
 	return true;
 }	
 
-
+*/
 /*
 Processes binary STL file "file_name" and extracts information about facets in vector of string on 
 address facets_st. Each string in this vector have size of 50 bytes and corresponds 
 to each facet an accordance with specification of STL file
 */
+/*
 void ProcessStlFile(std::string file_name, std::vector<std::string> *facets_st){
 	std::string title, amount, st;
 	std::ifstream fin("test.STL");	//Открыли для чтения
@@ -139,10 +143,11 @@ void ProcessStlFile(std::string file_name, std::vector<std::string> *facets_st){
 		std::cout<<"STL file seems to be broken"<<std::endl;
 	fin.close();	
 }
-
+*/
 /*
 Creates formalized vector of facets in FacetsSet object
 */
+/*
 void CreateFacetsVector(std::string input_file_name, FacetsSet *facets_set){
 	std::vector<std::string> facets_st;
 	std::vector<Facet> facets_vector;
@@ -153,12 +158,14 @@ void CreateFacetsVector(std::string input_file_name, FacetsSet *facets_set){
 	facets_set->SortTopToBottom();
 	return;
 }
-
+*/
+/*
 Instrument test_instrument = Instrument("test_instrument", 8, 0,0,0);		//for testing
-
+*/
 /*
 
 */
+/*
 void CreateGCode(std::string input_file_name){
 	FacetsSet facets_set;
 	InstrumentsSet instruments;	
@@ -176,16 +183,21 @@ void CreateGCode(std::string input_file_name){
 	contours_and_paths.MakeTestContours();
 	contours_and_paths.MakeSweepContours(test::test_z);
 	contours_and_paths.MakePathsFromAllSweepContours(test::test_instrument);
-	*/
+	
 }
-
+*/
 
 int main(){
+	RawSTL(DEFAULT_INPUT_FILE_NAME);
+	
+	/*
 		//LATER TO MAKE SPECIAL FUNCTION FOR THIS ****************************
 	Coordinate::SetPrecision(static_cast<Precision>(DEFAULT_PRECISION));
 		//********************************************************************
 	CreateGCode("test.STL");
 	
+	
+	*/
 	/*
 	std::string title, amount, facets;
 	std::ifstream fin("test.STL");	//Открыли для чтения

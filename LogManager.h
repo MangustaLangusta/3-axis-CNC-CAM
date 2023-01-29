@@ -10,6 +10,7 @@ class LogMessage{
 		LogMessage(std::string _message){
 			message = _message;
 		}
+		std::string GetString() { return message; }
 };
 
 class LogManager{
@@ -26,21 +27,21 @@ class LogManager{
 			}
 		}
 	public:
-		void PrintError(ErrorType _error_type, LogMessage _log_message){
-			std::cout<<
-			
-			
-		}
-		void PrintMessage(LogMessage _log_message){
-			
-		}
 		void PushError(ErrorType _error_type, LogMessage _log_message){
-			
-			
+			log.push_back(LogMessage(ErrorTypeToString(_error_type) + _log_message.GetString()));			
 		}
 		void PushMessage(LogMessage _log_message){
-			
+			log.push_back(_log_message);
 		}
+		void PrintError(ErrorType _error_type, LogMessage _log_message){
+			std::cout<<ErrorTypeToString(_error_type)<<_log_message.GetString()<<std::endl;
+			PushError(_error_type, _log_message);			
+		}
+		void PrintMessage(LogMessage _log_message){
+			std::cout<<_log_message.GetString()<<std::endl;
+			PushMessage(_log_message);
+		}
+
 };
 
 

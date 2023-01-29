@@ -1,49 +1,128 @@
 #ifndef RAW_STL
 #define RAW_STL
 
-struct STLHeader{
-	char header[80];
-	unsigned int number_of_triangles;
-}
 
-struct STLTriangle{
-	float normal[3];	//in some stl files not initialized
-	float v1[3];
-	float v2[3];
-	float v3[3];
-	unsigned short attribute_byte_count;
-};
+enum Validity {NOT_VALID, VALID};
 
+/*
+	*************************************************************************		//
+*/																																						//
+struct STLHeader{																															//
+	char title[80];																															//
+	unsigned int number_of_triangles;																						//
+	STLHeader(const char *header_buff){																					//
+		const int TITLE_SIZE = 80;																								//
+		const int NUMBER_OF_TRIANGLES_SIZE = 4;																		//
+		void *dest;																																//
+		const	void *src;																													//
+		dest = title;																															//
+		src = header_buff;																												//
+		memcpy(dest, src, TITLE_SIZE);																						//
+		dest = &number_of_triangles;																							//
+		src = header_buff + TITLE_SIZE;																						//
+		memcpy(dest, src, NUMBER_OF_TRIANGLES_SIZE);															//
+	}																																						//
+};																																						//
+																																							//
+struct STLTriangle{																														//
+	float normal[3];	//in some stl files not initialized												//
+	float v1[3];																																//
+	float v2[3];																																//
+	float v3[3];																																//
+	unsigned short attribute_byte_count;																				//
+	STLTriangle(const char *triangle_buff){																			//
+		const int NORMAL_ARRAY_SIZE = 4 * 3;	//as per STL specification					//
+		const int VERTEX_ARRAY_SIZE = 4 * 3;	//		-//-													//
+		const int ATTRIBUTE_SIZE = 2;					//		-//-													//
+		void *dest;																																//
+		const	void *src;																													//
+		if(sizeof(float) != 4)																										//
+			std::cerr<<"Error: size of float is not equal to 4!"<<std::endl;				//
+		dest = normal;																														//
+		src = triangle_buff;																											//
+		memcpy(dest, src, NORMAL_ARRAY_SIZE);																			//
+		dest = v1;																																//
+		src = triangle_buff + NORMAL_ARRAY_SIZE;																	//
+		memcpy(dest, src, VERTEX_ARRAY_SIZE);																			//
+		dest = v2;																																//
+		src = triangle_buff + NORMAL_ARRAY_SIZE + VERTEX_ARRAY_SIZE * 1;					//
+		memcpy(dest, src, VERTEX_ARRAY_SIZE);																			//
+		dest = v3;																																//
+		src = triangle_buff + NORMAL_ARRAY_SIZE + VERTEX_ARRAY_SIZE * 2;					//
+		memcpy(dest, src, VERTEX_ARRAY_SIZE);																			//
+		dest = &attribute_byte_count;																							//
+		src = triangle_buff + NORMAL_ARRAY_SIZE + VERTEX_ARRAY_SIZE * 3;					//
+		memcpy(dest, src, ATTRIBUTE_SIZE);																				//
+	}																																						//
+};																																						//
+//***************************************************************************	//
+
+/*
+	Contains only info, extracted from .stl file - no additional modyfing applied
+	valid is set to VALID if no issues during processing stl file
+*/
 class RawSTL{
 	private:
-		STLHeader header;
 		std::vector<STLTriangle> triangles;
-	public:
-		RawSTL(const std::string filename){
-			std::ifstream fin(filename);	//opened for reading
-			fin.get(header);
-			
+		Validity valid;	
+		bool GetDataFromBinarySTLFile(const std::string &filename){
+			std::ifstream fin(filename);			//file opened for reading
+			/*	Declaring variables to be used */
+			const int HEADER_SIZE = 84;
+			const int TRIANGLE_SIZE = 50;
+			char header_buff[HEADER_SIZE];
+			char triangle_buff[TRIANGLE_SIZE];
+			/*	Reading header	*/
+			for(auto i = 0; i < HEADER_SIZE; i++)
+				fin.get(header_buff[i]);
+			if ( (fin.rdstate() & std::ifstream::eofbit ) != 0 ){
+				std::cerr<<"Error: unexpected eof reached when reading STL file\n";
+				fin.close();
+				return false;
+			}
+			STLHeader header(header_buff);
+			std::cout<<header.number_of_triangles<<std::endl;
+			/* 	Header has been read successfully, 
+					reading triangles...								*/
+			for(long i = 0; i < header.number_of_triangles; i++){
+				for(auto i = 0; i < TRIANGLE_SIZE; i++)
+					fin.get(triangle_buff[i]);
+				if ( (fin.rdstate() & std::ifstream::eofbit ) != 0 ){
+					std::cerr<<"Error: unexpected eof reached when reading STL file"<<std::endl;
+					triangles.clear();
+					fin.close();
+					return false;
+				}
+				triangles.emplace_back(STLTriangle(triangle_buff));
+			}
+			/*	Triangles extracted, 
+					checking that eof reached		*/
+			fin.get();
+			if(fin.eof())
+				std::cout<<"eof"<<std::endl;
+			if(!fin.eof()){
+				std::cerr<<"Warning! All triangles extracted, but eof not reached!"<<std::endl;
+				triangles.clear();
+				fin.close();
+				return false;
+			}
+			std::cout<<"STL file successfully processed"<<std::endl;
 			fin.close();
-			
-			std::string title, amount, st;
-	std::ifstream fin("test.STL");	//Открыли для чтения
-	ReadSymbols(80, &title, &fin);
-	//ConsoleHex(title, 16);
-	ReadSymbols(4, &amount, &fin);
-	//std::cout<<"facets:"<<std::endl;
-	for (int i = 0; i < GetFacetsAmount(&amount); i++){
-		if (!ReadSymbols(50, &st, &fin))
-			std::cout<<"end of file reached but not all facets have been read! "<<i<<std::endl;
-		facets_st->push_back(st);
-	}
-	if(ReadSymbols(1, &st, &fin))
-		std::cout<<"STL file successfully processed"<<std::endl;
-	else 
-		std::cout<<"STL file seems to be broken"<<std::endl;
-	fin.close();
-			
+			return true;
 		}
-}
+
+	public:
+		RawSTL(const std::string &filename){
+			if(GetDataFromBinarySTLFile(filename))
+				valid = VALID;
+			else 
+				valid = NOT_VALID;
+		}
+		bool IsValid(){ 
+			if(valid == VALID)
+				return true;
+			return false;
+};
 
 
 
