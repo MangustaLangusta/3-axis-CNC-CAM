@@ -29,7 +29,7 @@ struct MathVector3D{
 
 struct Triangle3D{
 	Point3D vertex[3];
-	MathVector3D GetNormal();	
+	MathVector3D GetNormal() const;	
 };
 
 struct Matrix3D{
@@ -57,7 +57,7 @@ MathVector3D::MathVector3D(const Point3D &root, const Point3D &top){
 	};
 }
 
-MathVector3D Triangle3D::GetNormal(){
+MathVector3D Triangle3D::GetNormal() const{
 	MathVector3D vec_a(vertex[0], vertex[1]);
 	MathVector3D vec_b(vertex[0], vertex[2]);
 	return MathOperations::VectorMultiplication(vec_a, vec_b);	
