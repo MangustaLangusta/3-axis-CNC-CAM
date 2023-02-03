@@ -11,14 +11,13 @@ struct FacetPointsTriplet{
 class FacetPoint{
 	private:
 		Point3D coordinates;
-		std::set<const Facet*> parent_facets;
-		
+		std::set<Facet*> parent_facets;
 	public:
 		FacetPoint(Point3D);
-		void AddParentFacet(const Facet* parent_facet_to_add);
-		std::set<const Facet*> GetParentFacets() const;
+		void AddParentFacet(Facet* parent_facet_to_add);
+		std::set<Facet*> GetParentFacets() const;
 		const Point3D GetCoordinates() const;
-	
+		void PrintFacetPoint() const;
 	
 };
 
@@ -26,83 +25,61 @@ class Facet{
 	private:
 		FacetPoint* points[3];
 		MathVector3D normal;
-		const Facet* neighbour_facets[3];
+		Facet* neighbour_facets[3];
 		Validity valid;
-		
-		
 	public:
 		Facet(FacetPointsTriplet facet_points_triplet, const MathVector3D new_normal);
 		~Facet();
 		bool IsValid();
 		bool CheckNeighbourFacets();
-		std::set<const Facet*> GetNeighbours() const;
+		std::set<Facet*> GetNeighbours() const;
+		void PrintFacet() const;
 };
 
 
 
 class FacetBody{
 	private:
-		std::set<const Facet*> facets;
+		std::set<Facet*> facets;
 		Validity valid;
 		bool CheckIntegrity() const;
 	public:
-		FacetBody(std::set<const Facet*> body_facets);
+		FacetBody(std::set<Facet*> body_facets);
 		bool IsValid() const;
+		void PrintBody() const;
 };
 
 class CompositeFacetBody{
 	private:
 		std::vector<FacetBody> facet_bodies;
 		Validity valid;
-	
+		
 		bool MakeFacetPointsFromTriangles(const std::vector<Triangle3D> &triangles, std::map<Point3D, FacetPoint*> &result_map);
 		bool MakeFacetsFromTriangles(const std::vector<Triangle3D> &triangles, std::set<Facet*> &result_facets_vector);
-		bool GroupConnectedFacetsTogether(std::set<Facet*> source_facets, std::vector<std::set<const Facet*>> &result_groups);
-		
+		bool GroupConnectedFacetsTogether(std::set<Facet*> source_facets, std::vector<std::set<Facet*>> &result_groups);
 	public:
-		CompositeFacetBody(std::vector<Triangle3D> triangles){
-			std::set<Facet*> all_facets;
-			std::vector<std::set<const Facet*>> facet_groups;
-			bool abort = false;
-			
-			if(!MakeFacetsFromTriangles(triangles, all_facets))
-				return;
+		CompositeFacetBody(std::vector<Triangle3D> triangles);
+		void Shift(MathVector3D shift_vector);
+		void Rotate(Matrix3D turn_matrix);
+		void PrintCompositeBody() const;
 
-			for(auto &it : all_facets)
-				if(!it->CheckNeighbourFacets())
-					abort = true;
-				
-			if(!abort)
-				if(!GroupConnectedFacetsTogether(all_facets, facet_groups))
-					abort = true;
-			
-			if(abort){
-				std::cout<<"Making composite facet body is aborted!"<<std::endl;
-				for(auto &it : all_facets)
-					delete it;
-				return;
-			}	
-			
-			for(auto &it : facet_groups)
-				facet_bodies.emplace_back(FacetBody(it));
-			
-			this->valid = VALID;
-			for(auto &it : facet_bodies)
-				if(!it.IsValid())
-					this->valid = NOT_VALID;
-			
-			std::cout<<"DONE!!!"<<std::endl;
-		}
 };
 
 FacetPoint::FacetPoint(Point3D new_coords){
 	coordinates = new_coords;
 	parent_facets.clear();
 }
-const Point3D FacetPoint::GetCoordinates() const { return coordinates; }
-void FacetPoint::AddParentFacet(const Facet* parent_facet_to_add) { parent_facets.insert(parent_facet_to_add); } 
-std::set<const Facet*> FacetPoint::GetParentFacets() const { return parent_facets; };
 
+const Point3D FacetPoint::GetCoordinates() const { return coordinates; }
+
+void FacetPoint::AddParentFacet(Facet* parent_facet_to_add) { parent_facets.insert(parent_facet_to_add); } 
+
+std::set<Facet*> FacetPoint::GetParentFacets() const { return parent_facets; };
+
+void FacetPoint::PrintFacetPoint() const {
+	std::cout<<"facet point addr: "<<this<<" coords: ";
+	Print(coordinates);
+}
 
 Facet::Facet(FacetPointsTriplet facet_points_triplet, MathVector3D new_normal){
 	normal = new_normal;
@@ -121,7 +98,7 @@ Facet::~Facet(){
 }
 
 bool Facet::CheckNeighbourFacets(){
-	std::set<const Facet*> candidates_current, candidates_next;
+	std::set<Facet*> candidates_current, candidates_next;
 	bool found_neighbour;
 	for(int i = 0; i < 3; i++){
 		found_neighbour = false;
@@ -156,19 +133,37 @@ bool Facet::IsValid(){
 	return true;	
 }
 
-std::set<const Facet*> Facet::GetNeighbours() const{
-	std::set<const Facet*> result_set;
+std::set<Facet*> Facet::GetNeighbours() const{
+	std::set<Facet*> result_set;
 	for(int i = 0; i < 3; i++)
 		result_set.insert(neighbour_facets[i]);
 	return result_set;
 }
 
-bool FacetBody::CheckIntegrity() const{
-	std::cout<<"Some code to check integrity"<<std::endl;
-	return true;
+void Facet::PrintFacet() const {
+	std::cout<<"* *"<<std::endl;
+	std::cout<<"Facet addr: "<<this<<"   points:"<<std::endl;
+	for(int i = 0; i < 3; i++)
+		points[i]->PrintFacetPoint();
+	std::cout<<"Normal: ";
+	Print(normal.vector_top);
 }
 
-FacetBody::FacetBody(std::set<const Facet*> body_facets){
+bool FacetBody::CheckIntegrity() const{
+	std::set<Facet*> set_to_check;
+	std::set<Facet*> neighbours;
+	for(auto &it : facets){
+		neighbours = it->GetNeighbours();
+		for(auto &it_neighbours : neighbours)
+			set_to_check.insert(it_neighbours);
+	}
+	if(set_to_check == facets)
+		return true;
+	std::cout<<"Integrity check failed!"<<std::endl;
+	return false;
+}
+
+FacetBody::FacetBody(std::set<Facet*> body_facets){
 	facets = body_facets;
 	if(CheckIntegrity())
 		valid = VALID;
@@ -182,6 +177,12 @@ bool FacetBody::IsValid() const{
 	return false;
 }
 
+void FacetBody::PrintBody() const {
+	std::cout<<"* * * *"<<std::endl;
+	std::cout<<"Facet Body: "<<std::endl;
+	for(auto &it: facets)
+		it->PrintFacet();
+}
 
 bool CompositeFacetBody::MakeFacetPointsFromTriangles(const std::vector<Triangle3D> &triangles, std::map<Point3D, FacetPoint*> &result_map){
 	FacetPoint *ptr_facet_point = NULL;
@@ -234,12 +235,12 @@ bool CompositeFacetBody::MakeFacetsFromTriangles(const std::vector<Triangle3D> &
 	return true;
 }
 
-bool CompositeFacetBody::GroupConnectedFacetsTogether(std::set<Facet*> source_facets, std::vector<std::set<const Facet*>> &result_groups){
-	std::set<const Facet*> current_group;
-	std::set<const Facet*> neighbours;
-	std::list<const Facet*> facets_to_check;
-	std::list<const Facet*>::iterator it_checking;
-	std::set<const Facet*> not_processed_facets;
+bool CompositeFacetBody::GroupConnectedFacetsTogether(std::set<Facet*> source_facets, std::vector<std::set<Facet*>> &result_groups){
+	std::set<Facet*> current_group;
+	std::set<Facet*> neighbours;
+	std::list<Facet*> facets_to_check;
+	std::list<Facet*>::iterator it_checking;
+	std::set<Facet*> not_processed_facets;
 	
 	for(auto &it : source_facets)
 		not_processed_facets.insert(it);
@@ -271,6 +272,55 @@ bool CompositeFacetBody::GroupConnectedFacetsTogether(std::set<Facet*> source_fa
 	return true;
 }
 
+CompositeFacetBody::CompositeFacetBody(std::vector<Triangle3D> triangles){
+	std::set<Facet*> all_facets;
+	std::vector<std::set<Facet*>> facet_groups;
+	bool abort = false;
+
+	if(!MakeFacetsFromTriangles(triangles, all_facets))
+		return;
+
+	for(auto &it : all_facets)
+		if(!it->CheckNeighbourFacets())
+			abort = true;
+		
+	if(!abort)
+		if(!GroupConnectedFacetsTogether(all_facets, facet_groups))
+			abort = true;
+
+	if(abort){
+		std::cout<<"Making composite facet body is aborted!"<<std::endl;
+		for(auto &it : all_facets)
+			delete it;
+		return;
+	}	
+
+	for(auto &it : facet_groups)
+		facet_bodies.emplace_back(FacetBody(it));
+
+	this->valid = VALID;
+	for(auto &it : facet_bodies)
+		if(!it.IsValid())
+			this->valid = NOT_VALID;
+
+	std::cout<<"CompositeFacetBody successfully made"<<std::endl;
+	PrintCompositeBody();
+}
+
+void CompositeFacetBody::Shift(MathVector3D shift_vector){
+	std::cout<<"Some code for shifting"<<std::endl;
+}
+
+void CompositeFacetBody::Rotate(Matrix3D turn_matrix){
+	std::cout<<"Some code for rotation"<<std::endl;
+}
+
+void CompositeFacetBody::PrintCompositeBody() const {
+	std::cout<<"*	 *  *  *  *  *  *  *  *"<<std::endl;
+	std::cout<<"CompositeFacetBody: "<<std::endl;
+	for(auto &it : facet_bodies)
+		it.PrintBody();	
+}
 
 
 #endif
