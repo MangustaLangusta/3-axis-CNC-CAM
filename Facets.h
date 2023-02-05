@@ -34,8 +34,8 @@ class Facet{
 		bool CheckNeighbourFacets();
 		std::set<Facet*> GetNeighbours() const;
 		void PrintFacet() const;
+		std::pair<double, double> GetZExtremums() const;
 };
-
 
 
 class FacetBody{
@@ -47,6 +47,7 @@ class FacetBody{
 		FacetBody(std::set<Facet*> body_facets);
 		bool IsValid() const;
 		void PrintBody() const;
+		std::pair<double, double> GetZExtremums() const;
 };
 
 class CompositeFacetBody{
@@ -61,8 +62,8 @@ class CompositeFacetBody{
 		CompositeFacetBody(std::vector<Triangle3D> triangles);
 		void Shift(MathVector3D shift_vector);
 		void Rotate(Matrix3D turn_matrix);
+		std::pair<double, double> GetZExtremums() const;
 		void PrintCompositeBody() const;
-
 };
 
 FacetPoint::FacetPoint(Point3D new_coords){
@@ -140,6 +141,18 @@ std::set<Facet*> Facet::GetNeighbours() const{
 	return result_set;
 }
 
+std::pair<double, double> Facet::GetZExtremums() const{
+	Point3D current_coordinates = points[0]->GetCoordinates();
+	double z_max = current_coordinates.z;
+	double z_min = current_coordinates.z;
+	for(int i = 1; i < 3; i++){
+		current_coordinates = points[i]->GetCoordinates();
+		z_max = current_coordinates.z > z_max ? current_coordinates.z : z_max;
+		z_min = current_coordinates.z < z_min ? current_coordinates.z : z_min;
+	}
+	return std::make_pair(z_min, z_max);	
+}
+
 void Facet::PrintFacet() const {
 	std::cout<<"* *"<<std::endl;
 	std::cout<<"Facet addr: "<<this<<"   points:"<<std::endl;
@@ -152,6 +165,10 @@ void Facet::PrintFacet() const {
 bool FacetBody::CheckIntegrity() const{
 	std::set<Facet*> set_to_check;
 	std::set<Facet*> neighbours;
+	if(facets.empty()){
+		std::cout<<"FacetBody is empty!"<<std::endl;
+		return false;
+	}
 	for(auto &it : facets){
 		neighbours = it->GetNeighbours();
 		for(auto &it_neighbours : neighbours)
@@ -175,6 +192,20 @@ bool FacetBody::IsValid() const{
 	if(valid == VALID)
 		return true;
 	return false;
+}
+
+std::pair<double, double> FacetBody::GetZExtremums() const{
+	if(facets.empty())
+		return std::make_pair(0,0);
+	std::pair<double, double>	facet_extremums =(*facets.begin())->GetZExtremums();
+	double z_min = facet_extremums.first;
+	double z_max = facet_extremums.second;
+	for(auto &it : facets){
+		facet_extremums = it->GetZExtremums();
+		z_min = facet_extremums.first < z_min ? facet_extremums.first : z_min;
+		z_max = facet_extremums.second > z_max ? facet_extremums.second : z_max;
+	}
+	return std::make_pair(z_min, z_max);
 }
 
 void FacetBody::PrintBody() const {
@@ -313,6 +344,20 @@ void CompositeFacetBody::Shift(MathVector3D shift_vector){
 
 void CompositeFacetBody::Rotate(Matrix3D turn_matrix){
 	std::cout<<"Some code for rotation"<<std::endl;
+}
+
+std::pair<double, double> CompositeFacetBody::GetZExtremums() const {
+	if(facet_bodies.empty())
+		return std::make_pair(0,0);
+	std::pair<double, double> body_extremums = facet_bodies.begin()->GetZExtremums();
+	double z_min = body_extremums.first;
+	double z_max = body_extremums.second;
+	for(auto &it : facet_bodies){
+		body_extremums = it.GetZExtremums();
+		z_min = body_extremums.first < z_min ? body_extremums.first : z_min;
+		z_max = body_extremums.second > z_max ? body_extremums.second : z_max;
+	}
+	return std::make_pair(z_min, z_max);
 }
 
 void CompositeFacetBody::PrintCompositeBody() const {

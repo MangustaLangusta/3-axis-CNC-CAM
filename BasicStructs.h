@@ -3,6 +3,7 @@
 
 struct Point3D;
 struct MathVector3D;
+struct Line3D;
 struct Triangle3D;
 struct Plane3D;
 struct Matrix3D;
@@ -118,7 +119,6 @@ std::vector<Plane3D> MathOperations::CreateZPlanesArray(double interval, std::pa
 	double diff;
 	double delta_z;
 	int planes_amount;
-	
 	new_plane_point = {0,0,z_extremums.first};
 	result_vector = {Plane3D(new_normal, new_plane_point)};
 	if(interval == 0){
