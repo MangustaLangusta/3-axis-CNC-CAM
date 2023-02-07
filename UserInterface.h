@@ -1,43 +1,43 @@
 #ifndef CONSOLE_UI_H
 #define CONSOLE_UI_H
 
+#include <map>
+#include "TaskManager.h"
+
 class TaskManager;
 
+enum ConsoleUserInterfaceState {Initial, MainMenu, QuickStart, Quit};
+
+const std::map<ConsoleUserInterfaceState, std::vector<ConsoleUserInterfaceState>> states_travel_map = {
+	{ MainMenu, {QuickStart, Quit} },
+	{ QuickStart, {MainMenu, Quit} }	
+};
+
 class UserInterface{
-	private:
+	protected:
 		TaskManager *task_manager_assigned;
 	public:
 		UserInterface(TaskManager* new_task_manager_assigned);
-		virtual void Run() = 0;
-		virtual void GetHelp() = 0;
-	
+		~UserInterface();
+		virtual void Run() = 0;	
 };
 
 class ConsoleUserInterface : public UserInterface{
 	private:
-		void GetHelp();
+		ConsoleUserInterfaceState state;
+		bool finish_session;
+		void RunCurrentState();
+		void RunInitialState();
+		void RunMainMenuState();
+		void RunQuickStartState();
+		void RunQuitState();
+		void AskTaskManagerToGiveControlBack();
+		void ChangeState(ConsoleUserInterfaceState new_state);
 	public:
 		ConsoleUserInterface(TaskManager* new_task_manager_assigned);
+		~ConsoleUserInterface();
 		void Run();
-		void Stop();
 };
-
-UserInterface::UserInterface(TaskManager* new_task_manager_assigned){
-	task_manager_assigned = new_task_manager_assigned;
-}
-
-ConsoleUserInterface::ConsoleUserInterface(TaskManager* new_task_manager_assigned) : UserInterface(new_task_manager_assigned){
-	std::cout<<"ConsoleUI construction done"<<std::endl;
-}
-
-void ConsoleUserInterface::Run(){
-	std::cout<<"Run console user interface"<<std::endl;	
-}
-
-void ConsoleUserInterface::GetHelp(){
-	std::cout<<"Get help for console UI called"<<std::endl;
-}
-
 
 
 
