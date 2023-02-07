@@ -13,6 +13,12 @@ const std::map<ConsoleUserInterfaceState, std::vector<ConsoleUserInterfaceState>
 	{ QuickStart, {MainMenu, Quit} }	
 };
 
+const std::map<ConsoleUserInterfaceState, std::string> states_string_assignments = {
+	{	MainMenu, "MainMenu"},
+	{	QuickStart, "QuickStart"},
+	{	Quit, "Exit"}
+};
+
 class UserInterface{
 	protected:
 		TaskManager *task_manager_assigned;

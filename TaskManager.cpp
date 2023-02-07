@@ -34,6 +34,8 @@ TaskManager::TaskManager(int argc, char *argv[]){
 
 TaskManager::~TaskManager(){}
 
+UserInterface* TaskManager::GetUserInterface() const{ return user_interface; }
+
 void TaskManager::ProhibitTasksExecution(){ execution_permitted = false; }
 
 void TaskManager::PermitTasksExecution(){ execution_permitted = true; }
@@ -76,12 +78,12 @@ void TaskManager::RequestToInitiateConsoleUserInterface(){
 }
 
 void TaskRunConsoleUserInterface::Execute(){
-	
+	assigned_task_manager->GetUserInterface()->Run();
 }
 
 void TaskInitiateConsoleUserInterface::Execute(){
 	ConsoleUserInterface* new_user_interface = NULL;
 	new_user_interface = new ConsoleUserInterface(assigned_task_manager);
 	assigned_task_manager->AssignUserInterface(new_user_interface);
-	delete new_user_interface;
+	assigned_task_manager->RequestToRunConsoleUserInterface();
 }
