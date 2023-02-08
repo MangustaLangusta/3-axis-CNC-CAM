@@ -11,6 +11,7 @@
 #include <algorithm>
 #include "Utility.h"
 #include "BasicStructs.h"
+#include "ErrorCodes.h"
 
 
 struct FacetPointsTriplet;

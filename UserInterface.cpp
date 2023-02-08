@@ -14,9 +14,25 @@ ConsoleUserInterface::ConsoleUserInterface(TaskManager* new_task_manager_assigne
 ConsoleUserInterface::~ConsoleUserInterface(){}
 
 void ConsoleUserInterface::Run(){
+	ProcessMessages();
 	do{
 		RunCurrentState();
 	} while(!finish_session);
+}
+
+void ConsoleUserInterface::Message(std::string new_text, ErrorCode new_error_code){
+	messages_on_hold.emplace_back(new_text, new_error_code);
+}
+
+void ConsoleUserInterface::ProcessMessages(){
+	bool fatal_error_exist = false;
+	for(auto &it : messages_on_hold){
+		DisplayMessage(it);
+		if( Errors::IsFatal(it.GetErrorCode()) )
+			fatal_error_exist = true;
+	}	
+	if(fatal_error_exist)
+		state = FatalError;
 }
 
 void ConsoleUserInterface::RunCurrentState(){
@@ -34,6 +50,9 @@ void ConsoleUserInterface::RunCurrentState(){
 			break;
 		case Quit:
 			RunQuitState();
+			break;
+		case FatalError:
+			RunFatalError();
 			break;
 		default:
 			RunQuitState();
@@ -82,7 +101,7 @@ void ConsoleUserInterface::RunMainMenuState(){
 
 void ConsoleUserInterface::RunQuickStartState(){
 	std::cout<<"QuickStart"<<std::endl;
-	std::cout<<"Some actions"<<std::endl;
+	task_manager_assigned->RequestToCreateNewProject("Test Project");
 	state = MainMenu;
 	AskTaskManagerToGiveControlBack();
 }
@@ -91,6 +110,33 @@ void ConsoleUserInterface::RunQuitState(){
 	std::cout<<"Exit."<<std::endl;
 }
 
+void ConsoleUserInterface::RunFatalError(){
+	std::cout<<"Program will be terminated due to fatal error"<<std::endl;
+	task_manager_assigned->RequestEmergencyStop();
+}
 
-void ConsoleUserInterface::AskTaskManagerToGiveControlBack() { task_manager_assigned->RequestToRunConsoleUserInterface(); }
+void ConsoleUserInterface::AskTaskManagerToGiveControlBack() { 
+	task_manager_assigned->RequestToRunConsoleUserInterface(); 
+}
+
+void ConsoleUserInterface::DisplayMessage(const UserInterfaceMessage &message) const{
+	std::string error_str = "";
+	if(message.GetErrorCode() != NORMAL)
+		error_str = Errors::ErrorCodeToString(message.GetErrorCode()) + " ";
+	std::cout<<error_str<<message.GetText()<<std::endl;
+}
+
+UserInterfaceMessage::UserInterfaceMessage(std::string new_text, ErrorCode new_error_code){
+	text = new_text;
+	error_code = new_error_code;
+}
+UserInterfaceMessage::~UserInterfaceMessage(){}
+
+std::string UserInterfaceMessage::GetText() const {
+	return text; 
+}
+
+ErrorCode UserInterfaceMessage::GetErrorCode() const{
+	return error_code;
+}
 

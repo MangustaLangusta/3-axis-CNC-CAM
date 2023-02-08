@@ -10,7 +10,6 @@
 #include <map>
 
 /*    NEW CLASSES ARE BELOW   */
-#include "LogManager.h"
 #include "BasicStructs.h"
 #include "Utility.h"
 #include "RawSTL.h"
@@ -19,6 +18,7 @@
 #include "Config.h"
 #include "UserInterface.h"
 #include "TaskManager.h"
+#include "Project.h"
 
 
 
@@ -88,7 +88,13 @@ int main(int argc, char *argv[]){
 }
 
 
+/*
+g++ -c main.cpp Facets.cpp TaskManager.cpp UserInterface.cpp BasicStructs.cpp Utility.cpp RawSTL.cpp Project.cpp ErrorCodes.cpp
+g++ main.o Facets.o TaskManager.o UserInterface.o BasicStructs.o Utility.o RawSTL.o Project.o ErrorCodes.o
 
+
+
+*/
 
 
 
