@@ -30,6 +30,7 @@ struct MathVector3D{
 struct Line3D{
 	Point3D a;
 	Point3D b;
+	Line3D();
 	Line3D(const Point3D &new_a, const Point3D &new_b);
 };
 

@@ -3,7 +3,7 @@
 
 #include <string>
 #include "Facets.h"
-#include "ErrorCodes.h"
+#include "Errors.h"
 
 class Project{
 	private:
@@ -17,7 +17,10 @@ class Project{
 		~Project();
 		void AssignCompositeFacetBody(CompositeFacetBody* new_composite_facet_body);
 		CompositeFacetBody* GetAssignedCompositeFacetBody();
+		void SetProjectName(std::string new_project_name);
 		std::string GetProjectName();
+		void SetFileName(std::string new_filename);
+		std::string GetFilename();
 };
 
 

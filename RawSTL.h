@@ -5,7 +5,10 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <list>
+#include <assert.h>
 #include "BasicStructs.h"
+#include "Errors.h"
 
 struct STLHeader{
 	char title[80];
@@ -33,9 +36,11 @@ class RawSTL{
 	private:
 		std::vector<STLTriangle> triangles;
 		Validity valid;	
+		std::list<ErrorCode> *error_codes_list;
 		bool GetDataFromBinarySTLFile(const std::string &filename);
+		void SendErrorCode(ErrorCode new_error_code);
 	public:
-		RawSTL(const std::string &filename);
+		RawSTL(const std::string &filename, std::list<ErrorCode> *new_error_codes_list);
 		~RawSTL();
 		bool IsValid();
 		const std::vector<Triangle3D> GetTriangles3D();

@@ -20,15 +20,16 @@ void ConsoleUserInterface::Run(){
 	} while(!finish_session);
 }
 
-void ConsoleUserInterface::Message(std::string new_text, ErrorCode new_error_code){
-	messages_on_hold.emplace_back(new_text, new_error_code);
+void ConsoleUserInterface::Message(std::string new_text, const Error &new_error){
+	UserInterfaceMessage new_message(new_text, new_error);
+	DisplayMessage(new_message);
+	messages_on_hold.emplace_back(new_text, new_error);
 }
 
 void ConsoleUserInterface::ProcessMessages(){
 	bool fatal_error_exist = false;
 	for(auto &it : messages_on_hold){
-		DisplayMessage(it);
-		if( Errors::IsFatal(it.GetErrorCode()) )
+		if( it.GetError().IsFatal() )
 			fatal_error_exist = true;
 	}	
 	if(fatal_error_exist)
@@ -81,6 +82,7 @@ void ConsoleUserInterface::RunMainMenuState(){
 	
 	variants_to_go = states_travel_map.find(state)->second;
 	
+	std::cout<<std::endl;
 	std::cout<<"MainMenu."<<std::endl;
 	std::cout<<"Choose action by typing number of option:"<<std::endl<<std::endl;
 	for(int i = 1; i <= variants_to_go.size(); i++){
@@ -102,21 +104,18 @@ void ConsoleUserInterface::RunMainMenuState(){
 void ConsoleUserInterface::RunQuickStartState(){
 	std::cout<<"QuickStart"<<std::endl;
 	task_manager_assigned->RequestToCreateNewProject("Test Project");
+	task_manager_assigned->RequestToProcessInputFile("test.STL");
 	state = MainMenu;
-	AskTaskManagerToGiveControlBack();
 }
 
 void ConsoleUserInterface::RunQuitState(){
 	std::cout<<"Exit."<<std::endl;
+	task_manager_assigned->ProhibitTasksExecution();
 }
 
 void ConsoleUserInterface::RunFatalError(){
 	std::cout<<"Program will be terminated due to fatal error"<<std::endl;
 	task_manager_assigned->RequestEmergencyStop();
-}
-
-void ConsoleUserInterface::AskTaskManagerToGiveControlBack() { 
-	task_manager_assigned->RequestToRunConsoleUserInterface(); 
 }
 
 void ConsoleUserInterface::DisplayMessage(const UserInterfaceMessage &message) const{
@@ -126,9 +125,9 @@ void ConsoleUserInterface::DisplayMessage(const UserInterfaceMessage &message) c
 	std::cout<<error_str<<message.GetText()<<std::endl;
 }
 
-UserInterfaceMessage::UserInterfaceMessage(std::string new_text, ErrorCode new_error_code){
+UserInterfaceMessage::UserInterfaceMessage(std::string new_text, const Error &new_error){
 	text = new_text;
-	error_code = new_error_code;
+	error = new_error;
 }
 UserInterfaceMessage::~UserInterfaceMessage(){}
 
@@ -136,7 +135,11 @@ std::string UserInterfaceMessage::GetText() const {
 	return text; 
 }
 
+Error UserInterfaceMessage::GetError() const{
+	return error;
+}
+
 ErrorCode UserInterfaceMessage::GetErrorCode() const{
-	return error_code;
+	return error.code;
 }
 

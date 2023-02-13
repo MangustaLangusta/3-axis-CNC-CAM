@@ -4,9 +4,12 @@
 #include <list>
 #include <vector>
 #include <iostream>
+#include <assert.h>
 #include "UserInterface.h"
 #include "Project.h"
-#include "ErrorCodes.h"
+#include "Errors.h"
+#include "RawSTL.h"
+
 
 /*
 	Task Manager is the first object to be created. 
@@ -27,30 +30,18 @@ class Project;
 /*
 /////////////////////////////////////////
 */
+using RequestCode = long;
 
 class Task{
 	private:
 		
 	public:
 		TaskManager* assigned_task_manager;
-		virtual void Execute() = 0;
 		~Task();
 		Task(TaskManager* new_assigned_task_manager);
-};
-
-class TaskRunConsoleUserInterface : public Task{
-	public:
-		TaskRunConsoleUserInterface(TaskManager* new_assigned_task_manager);
-		~TaskRunConsoleUserInterface();
-		void Execute() override;
-
-};
-
-class TaskInitiateConsoleUserInterface : public Task{
-	public:
-		TaskInitiateConsoleUserInterface(TaskManager* new_assigned_task_manager);
-		~TaskInitiateConsoleUserInterface();
-		void Execute() override;
+		void Message(const std::string text);
+		void ErrorMessage(const std::string text, const Error error);
+		virtual void Execute() = 0;
 };
 
 class TaskCreateNewProject : public Task{
@@ -59,16 +50,24 @@ class TaskCreateNewProject : public Task{
 	public:
 		TaskCreateNewProject(TaskManager* new_assigned_task_manager, std::string new_project_name);
 		~TaskCreateNewProject();
-		void Execute() override;	
+		void Execute();	
 };
 
 class TaskEmergencyStop : public Task{
 	public:
 		TaskEmergencyStop(TaskManager* new_assigned_task_manager);
 		~TaskEmergencyStop();
-		void Execute() override;
+		void Execute();
 };
 
+class TaskProcessInputFile : public Task{
+	private: 
+		std::string filename;
+	public:
+		TaskProcessInputFile(TaskManager* new_assigned_task_manager, std::string new_filename);
+		~TaskProcessInputFile();
+		void Execute();
+};
 
 class TaskManager{
 	private:
@@ -78,23 +77,23 @@ class TaskManager{
 		bool execution_permitted;
 		void CommandLineArgumentsToTasks(int argc, char *argv[]);
 		void ExecuteNextTask();
-		bool HaveTasksToDo()const;
 		bool IsExecutionPermitted() const;
+		void StartConsoleUserInterface();
 	public:
 		TaskManager(int argc, char *argv[]);
 		~TaskManager();
 		void StartTasksExecution();
 		void ProhibitTasksExecution();
 		void PermitTasksExecution();
-		void AssignUserInterface(UserInterface* new_user_interface);
 		UserInterface* GetUserInterface() const;
 		void AssignProject(Project* new_project);
-		void MessageToUserInterface(std::string text);
-		void ErrorMessageToUserInterface(std::string text, ErrorCode error_code);
+		Project* GetAssignedProject();
+		void MessageToUserInterface(const std::string text);
+		void ErrorMessageToUserInterface(const std::string text, const Error error);
 			//Requests from other parts of program
+		void Request(RequestCode request_code);										//If no additional info required
+		void Request(RequestCode request_code, std::string str);	//if text info required
 		void RequestEmergencyStop();
-		void RequestToInitiateConsoleUserInterface();
-		void RequestToRunConsoleUserInterface();
 		void RequestToCreateNewProject(std::string project_name);
 		void RequestToMakeGCodeFromFile(std::string filename);	//for quick start with pre-defined settings
 		void RequestToProcessInputFile(std::string filename);	//output - composite facet body

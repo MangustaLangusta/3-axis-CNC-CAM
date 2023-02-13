@@ -10,6 +10,8 @@ bool operator< (const Point3D &a, const Point3D &b){
 	);
 }
 
+Line3D::Line3D(){}
+
 Line3D::Line3D (const Point3D &new_a, const Point3D &new_b){
 	a = new_a;
 	b = new_b;

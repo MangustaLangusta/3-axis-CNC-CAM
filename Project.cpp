@@ -18,6 +18,18 @@ CompositeFacetBody* Project::GetAssignedCompositeFacetBody(){
 	return composite_facet_body;
 }
 
+void Project::SetProjectName(std::string new_project_name){
+	project_name = new_project_name;
+}
+
 std::string Project::GetProjectName(){
 	return project_name;
+}
+
+void Project::SetFileName(std::string new_filename){
+	filename = new_filename;
+}
+
+std::string Project::GetFilename(){
+	return filename;
 }

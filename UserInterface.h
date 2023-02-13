@@ -6,7 +6,7 @@
 #include <list>
 #include "TaskManager.h"
 #include "Project.h"
-#include "ErrorCodes.h"
+#include "Errors.h"
 
 class TaskManager;
 class UserInterfaceMessage;
@@ -33,7 +33,7 @@ class UserInterface{
 		UserInterface(TaskManager* new_task_manager_assigned);
 		~UserInterface();
 		virtual void Run() = 0;	
-		virtual void Message(std::string new_text, ErrorCode new_error_code) = 0;
+		virtual void Message(std::string new_text, const Error &new_error) = 0;
 };
 
 class ConsoleUserInterface : public UserInterface{
@@ -46,7 +46,6 @@ class ConsoleUserInterface : public UserInterface{
 		void RunQuickStartState();
 		void RunQuitState();
 		void RunFatalError();
-		void AskTaskManagerToGiveControlBack();
 		void ChangeState(ConsoleUserInterfaceState new_state);
 		void ProcessMessages();
 		void DisplayMessage(const UserInterfaceMessage &message) const;
@@ -54,18 +53,19 @@ class ConsoleUserInterface : public UserInterface{
 		ConsoleUserInterface(TaskManager* new_task_manager_assigned);
 		~ConsoleUserInterface();
 		void Run();
-		void Message(std::string new_text, ErrorCode new_error_code);
+		void Message(std::string new_text, const Error &new_error);
 };
 
 class UserInterfaceMessage{
 	private:
 		std::string text;
-		ErrorCode error_code;
+		Error error;
 	public:
-		UserInterfaceMessage(std::string new_text, ErrorCode new_error_code);
+		UserInterfaceMessage(std::string new_text, const Error &new_error);
 		~UserInterfaceMessage();
 		std::string GetText() const;	
 		ErrorCode GetErrorCode() const;
+		Error GetError() const;
 };
 
 #endif

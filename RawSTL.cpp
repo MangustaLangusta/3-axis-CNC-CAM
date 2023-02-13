@@ -20,9 +20,8 @@ STLTriangle::STLTriangle(const char *triangle_buff){
 	const int VERTEX_ARRAY_SIZE = 4 * 3;	//		-//-													
 	const int ATTRIBUTE_SIZE = 2;					//		-//-													
 	void *dest;																																
-	const	void *src;																													
-	if(sizeof(float) != 4)																										
-		std::cerr<<"Error: size of float is not equal to 4!"<<std::endl;				
+	const	void *src;			
+	assert(sizeof(float) == 4);	
 	dest = normal;																														
 	src = triangle_buff;																											
 	memcpy(dest, src, NORMAL_ARRAY_SIZE);																			
@@ -50,7 +49,8 @@ Triangle3D STLTriangle::ConvertToTriangle(){
 	return result_triangle;
 }
 
-RawSTL::RawSTL(const std::string &filename){
+RawSTL::RawSTL(const std::string &filename, std::list<ErrorCode> *new_error_codes_list){
+	error_codes_list = new_error_codes_list;
 	if(GetDataFromBinarySTLFile(filename))
 		valid = VALID;
 	else 
@@ -70,19 +70,18 @@ bool RawSTL::GetDataFromBinarySTLFile(const std::string &filename){
 	for(auto i = 0; i < HEADER_SIZE; i++)
 		fin.get(header_buff[i]);
 	if ( (fin.rdstate() & std::ifstream::eofbit ) != 0 ){
-		std::cerr<<"Error: unexpected eof reached when reading STL file\n";
+		SendErrorCode(ERROR_STL_FILE_UNEXPECTED_EOF);
 		fin.close();
 		return false;
 	}
 	STLHeader header(header_buff);
-	std::cout<<header.number_of_triangles<<std::endl;
 	/* 	Header has been read successfully, 
 			reading triangles...								*/
 	for(long i = 0; i < header.number_of_triangles; i++){
 		for(auto i = 0; i < TRIANGLE_SIZE; i++)
 			fin.get(triangle_buff[i]);
 		if ( (fin.rdstate() & std::ifstream::eofbit ) != 0 ){
-			std::cerr<<"Error: unexpected eof reached when reading STL file"<<std::endl;
+			SendErrorCode(ERROR_STL_FILE_UNEXPECTED_EOF);
 			triangles.clear();
 			fin.close();
 			return false;
@@ -93,16 +92,18 @@ bool RawSTL::GetDataFromBinarySTLFile(const std::string &filename){
 			checking that eof reached		*/
 	fin.get();
 	if(!fin.eof()){
-		std::cerr<<"Warning! All triangles extracted, but eof not reached!"<<std::endl;
+		SendErrorCode(ERROR_STL_FILE_EOF_NOT_REACHED);
 		triangles.clear();
 		fin.close();
 		return false;
 	}
-	std::cout<<"STL file successfully processed"<<std::endl;
 	fin.close();
 	return true;
 }
 
+void RawSTL::SendErrorCode(ErrorCode new_error_code){
+	error_codes_list->push_back(new_error_code);
+}
 
 bool RawSTL::IsValid(){ 
 	if(valid == VALID)
