@@ -72,7 +72,6 @@ std::vector<Plane3D> MathOperations::CreateZPlanesArray(double interval, std::pa
 	new_plane_point = {0,0,z_extremums.first};
 	result_vector = {Plane3D(new_normal, new_plane_point)};
 	if(interval == 0){
-		std::cout<<"CreateZPlanesArray error: interval == 0"<<std::endl;
 		return result_vector;
 	}
 	diff = z_extremums.first - z_extremums.second;
@@ -83,4 +82,24 @@ std::vector<Plane3D> MathOperations::CreateZPlanesArray(double interval, std::pa
 		result_vector.emplace_back(Plane3D(new_normal, new_plane_point));
 	}	
 	return result_vector;
+}
+
+double MathOperations::Interpolate(const double x1, const double x2, const double ratio){
+	return ( x1 + (x2 - x1) * ratio );
+}
+
+bool MathOperations::IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point){
+	Point3D point_a = line.a;
+	Point3D point_b = line.b;
+	intersection_point = NULL;
+	if( ( (point_a.z > z_plane) && (point_b.z > z_plane) ) || ( (point_a.z < z_plane) && (point_b.z < z_plane) ) )
+		return false;
+	double delta_z = point_b.z - point_a.z;
+	if(delta_z == 0)
+		return false;
+	double ratio = (z_plane - point_a.z) / delta_z;
+	intersection_point->x = MathOperations::Interpolate(point_a.x, point_b.x, ratio);
+	intersection_point->y = MathOperations::Interpolate(point_a.y, point_b.y, ratio);
+	intersection_point->z = z_plane;
+	return true;
 }

@@ -103,8 +103,15 @@ void ConsoleUserInterface::RunMainMenuState(){
 
 void ConsoleUserInterface::RunQuickStartState(){
 	std::cout<<"QuickStart"<<std::endl;
-	task_manager_assigned->RequestToCreateNewProject("Test Project");
-	task_manager_assigned->RequestToProcessInputFile("test.STL");
+	RequestData project_request, process_file_request;
+	project_request.AddRequestCode(REQUEST_CREATE_NEW_PROJECT);
+	project_request.AddProjectName(ProjectName("TestProject"));
+	assert(project_request.IsValid());
+	task_manager_assigned->Request(project_request);
+	process_file_request.AddFilename(Filename("test.STL"));
+	process_file_request.AddRequestCode(REQUEST_PROCESS_INPUT_FILE);
+	assert(process_file_request.IsValid());
+	task_manager_assigned->Request(process_file_request);
 	state = MainMenu;
 }
 
@@ -115,7 +122,10 @@ void ConsoleUserInterface::RunQuitState(){
 
 void ConsoleUserInterface::RunFatalError(){
 	std::cout<<"Program will be terminated due to fatal error"<<std::endl;
-	task_manager_assigned->RequestEmergencyStop();
+	RequestData request_emergency_stop;
+	request_emergency_stop.AddRequestCode(REQUEST_EMERGENCY_STOP);
+	assert(request_emergency_stop.IsValid());
+	task_manager_assigned->Request(request_emergency_stop);
 }
 
 void ConsoleUserInterface::DisplayMessage(const UserInterfaceMessage &message) const{

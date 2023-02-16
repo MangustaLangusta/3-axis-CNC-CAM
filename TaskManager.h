@@ -9,6 +9,8 @@
 #include "Project.h"
 #include "Errors.h"
 #include "RawSTL.h"
+#include "Facets.h"
+#include "Utility.h"
 
 
 /*
@@ -30,7 +32,36 @@ class Project;
 /*
 /////////////////////////////////////////
 */
-using RequestCode = long;
+using Filename = std::string;
+using ProjectName = std::string;
+
+enum RequestCode {
+	REQUEST_NIL,
+	REQUEST_EMERGENCY_STOP,
+	REQUEST_CREATE_NEW_PROJECT,
+	REQUEST_MAKE_GCODE_FROM_FILE,
+	REQUEST_PROCESS_INPUT_FILE	
+};
+
+class RequestData{
+	private:
+		RequestCode request_code;
+		Filename filename_data;
+		ProjectName project_name_data;
+		SplitSettings split_settings;
+	public:
+		RequestData();
+		~RequestData();
+		void AddRequestCode(const RequestCode new_request_code);
+		void AddFilename(const Filename new_filename);
+		void AddProjectName(const ProjectName new_project_name);
+		void AddSplitSettings(const SplitSettings new_split_settings);
+		bool IsValid();
+		RequestCode GetRequestCode() const;
+		Filename GetFilename() const;
+		ProjectName GetProjectName() const;
+		SplitSettings GetSplitSettings() const;
+};
 
 class Task{
 	private:
@@ -69,6 +100,14 @@ class TaskProcessInputFile : public Task{
 		void Execute();
 };
 
+class TaskSplitCompositeFacetBodyToContours : public Task{
+	private:
+	
+	public:
+		//TaskSplitCompositeFacetBodyToContours(TaskManager* new_assigned_task_manager
+	
+};
+
 class TaskManager{
 	private:
 		std::list<Task*> tasks;
@@ -90,14 +129,7 @@ class TaskManager{
 		Project* GetAssignedProject();
 		void MessageToUserInterface(const std::string text);
 		void ErrorMessageToUserInterface(const std::string text, const Error error);
-			//Requests from other parts of program
-		void Request(RequestCode request_code);										//If no additional info required
-		void Request(RequestCode request_code, std::string str);	//if text info required
-		void RequestEmergencyStop();
-		void RequestToCreateNewProject(std::string project_name);
-		void RequestToMakeGCodeFromFile(std::string filename);	//for quick start with pre-defined settings
-		void RequestToProcessInputFile(std::string filename);	//output - composite facet body
-		
+		void Request(const RequestData request_data);				//Requests from other parts of program to perform task specified in request_data			
 };
 
 

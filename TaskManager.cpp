@@ -1,5 +1,64 @@
 #include "TaskManager.h"
 
+RequestData::RequestData(){
+	request_code = REQUEST_NIL;
+}
+
+RequestData::~RequestData(){}
+
+void RequestData::AddRequestCode(const RequestCode new_request_code){
+	request_code = new_request_code;
+}
+
+void RequestData::AddFilename(const Filename new_filename){
+	filename_data = new_filename;
+}
+
+void RequestData::AddProjectName(const ProjectName new_project_name){
+	project_name_data = new_project_name;
+}
+
+void RequestData::AddSplitSettings(const SplitSettings new_split_settings){
+	split_settings = new_split_settings;
+}
+
+bool RequestData::IsValid(){
+	switch(request_code){
+		//Cases where no additional info required:
+		case REQUEST_EMERGENCY_STOP:
+			return true;
+		//Cases wher only project name required:
+		case REQUEST_CREATE_NEW_PROJECT:
+			if(project_name_data != "")
+				return true;
+			return false;
+		//Cases where filename required:
+		case REQUEST_MAKE_GCODE_FROM_FILE:
+		case REQUEST_PROCESS_INPUT_FILE:
+			if(filename_data != "")
+				return true;
+			return false;
+		//All wrong names (including NIL code):
+		default:
+			return false;
+	}
+}
+
+RequestCode RequestData::GetRequestCode() const{
+	return request_code;
+}
+
+Filename RequestData::GetFilename() const{
+	return filename_data;
+}
+
+ProjectName RequestData::GetProjectName() const{
+	return project_name_data;
+}
+
+SplitSettings RequestData::GetSplitSettings() const{
+	return split_settings;
+}
 
 Task::Task(TaskManager* new_assigned_task_manager){
 	assigned_task_manager = new_assigned_task_manager;	
@@ -110,31 +169,23 @@ void TaskManager::ErrorMessageToUserInterface(const std::string text, const Erro
 	user_interface->Message(text, error);
 }
 
-void TaskManager::Request(RequestCode request_code){
-	
-	return;
+void TaskManager::Request(const RequestData request_data){
+	switch(request_data.GetRequestCode()){
+		case REQUEST_EMERGENCY_STOP:
+			break;
+		case REQUEST_CREATE_NEW_PROJECT:
+			tasks.emplace_back(new TaskCreateNewProject(this, request_data.GetProjectName()));
+			break;
+		case REQUEST_MAKE_GCODE_FROM_FILE:
+			break;
+		case REQUEST_PROCESS_INPUT_FILE:
+			tasks.emplace_back(new TaskProcessInputFile(this, request_data.GetFilename()));
+			break;
+		default:
+			assert(false);
+	}
 }	
 
-void TaskManager::Request(RequestCode request_code, std::string str){
-	return;
-	
-}
-
-void TaskManager::RequestEmergencyStop(){
-	TaskEmergencyStop* new_task = new TaskEmergencyStop(this);
-	auto it = tasks.begin();
-	if(!tasks.empty())
-		it++;
-	tasks.emplace(it, new_task);
-}
-
-void TaskManager::RequestToCreateNewProject(std::string project_name){
-	tasks.emplace_back(new TaskCreateNewProject(this, project_name));
-}
-
-void TaskManager::RequestToProcessInputFile(std::string filename){
-	tasks.emplace_back(new TaskProcessInputFile(this, filename));
-}
 
 void TaskCreateNewProject::Execute(){
 	Project* new_project = NULL;
@@ -150,6 +201,7 @@ void TaskEmergencyStop::Execute(){
 void TaskProcessInputFile::Execute(){
 	std::list<Error> errors_list;
 	std::list<ErrorCode> error_codes_list;	//to remove
+	bool error_flag = false;
 	Project* project = NULL;
 	RawSTL* tmp_stl = NULL;
 	CompositeFacetBody* composite_facet_body = NULL;
@@ -164,8 +216,14 @@ void TaskProcessInputFile::Execute(){
 		return;
 	}
 	Message("STL file successfully processed");
-	composite_facet_body = new CompositeFacetBody(tmp_stl->GetTriangles3D(), &errors_list);
+	composite_facet_body = new CompositeFacetBody(tmp_stl->GetTriangles3D(), &errors_list, &error_flag);
 	delete tmp_stl;
+	if(error_flag){
+		for(auto &it : errors_list)
+			ErrorMessage("", it);
+		return;
+	}
+	Message("Composite Facet Body successfully created");
 	project->AssignCompositeFacetBody(composite_facet_body);
-	composite_facet_body->GetZExtremums();
 }
+

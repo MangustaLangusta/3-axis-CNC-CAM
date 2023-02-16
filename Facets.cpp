@@ -1,62 +1,39 @@
 #include "Facets.h"
 
-IntersectionObject::IntersectionObject(){}
-
-IntersectionObject::~IntersectionObject(){}
-
-IntersectionPoint::IntersectionPoint(const Point3D point) : IntersectionObject(){
-	intersection_point = point;
-}
-
-IntersectionPoint::~IntersectionPoint(){}
-
-Point3D IntersectionPoint::GetIntersectionPoint()const{
-	return intersection_point;
-}
-
-IntersectionLine::IntersectionLine(const Line3D line) : IntersectionObject(){
-	intersection_line = line;
-}
-
-IntersectionLine::~IntersectionLine(){}
-
-Line3D IntersectionLine::GetIntersectionLine()const{
-	return intersection_line;
-}
-
-IntersectionTriangle::IntersectionTriangle(const Triangle3D triangle) : IntersectionObject(){
-	intersection_triangle = triangle;
-}
-
-IntersectionTriangle::~IntersectionTriangle(){}
-
-Triangle3D IntersectionTriangle::GetIntersectionTriangle()const{
-	return intersection_triangle;
-}
-		
-FacetIntersection::FacetIntersection(const FacetPointsTriplet &triplet, const double z_plane){
-	Point3D a = *triplet.facet_point[0];
-	Point3D b = *triplet.facet_point[1];
-	Point3D c = *triplet.facet_point[2];
-	IntersectionObject* new_intersection_object;
-	if((a.z == b.z)&&(a.z == c.z)){
-		//whole facet lays in z_plane 
-		new_intersection_object = new IntersectionTriangle(Triangle3D({a,b,c}));
-		specifier = Triangle;
-		return;
+std::vector<Point3D> Facets::GetCommonPoints(const Facet* facet_a, const Facet* facet_b){
+	std::vector<Point3D> result_vector;
+	std::vector<FacetPoint*> vector_a = facet_a->GetPoints();
+	std::vector<FacetPoint*> vector_b = facet_b->GetPoints();
+	for(auto &it_a : vector_a){
+		for(auto &it_b : vector_b)
+			if(it_a == it_b)
+				result_vector.push_back(it_a->GetCoordinates());
 	}
+	return result_vector;
 }
 
-FacetIntersection::~FacetIntersection(){
-	delete intersection_object;
-}
-
-FacetIntersectionSpecifier FacetIntersection::GetSpecifier()const{
-	return specifier;
-}
-
-IntersectionObject* FacetIntersection::GetIntersectionObject()const{
-	return intersection_object;
+bool Facets::IntersectionFacetsAndZPlane(const Facet* facet_a, const Facet* facet_b, double z_plane, Point3D* result_point){
+	result_point = NULL;
+	std::vector<Point3D> common_points = Facets::GetCommonPoints(facet_a, facet_b);
+	switch(common_points.size()){
+		case 0:
+			return false;
+		case 1:
+			if(common_points[0].z == z_plane){
+				*result_point = common_points[0];
+				return true;
+			}
+			else 
+				return false;
+		case 2:
+			if(MathOperations::IntersectionOfLineAndZPlane(Line3D(common_points[0], common_points[1]), z_plane, result_point))
+				return true;
+			else 
+				return false;
+		default: 
+			assert(false);	//should not be happened
+			return false;
+	}
 }
 
 FacetPoint::FacetPoint(Point3D new_coords){
@@ -67,6 +44,12 @@ FacetPoint::FacetPoint(Point3D new_coords){
 FacetPoint::~FacetPoint(){}
 
 const Point3D FacetPoint::GetCoordinates() const { return coordinates; }
+
+const double FacetPoint::GetX() const { return coordinates.x; }
+
+const double FacetPoint::GetY() const { return coordinates.y; }
+
+const double FacetPoint::GetZ() const { return coordinates.z; }
 
 void FacetPoint::AddParentFacet(Facet* parent_facet_to_add) { parent_facets.insert(parent_facet_to_add); } 
 
@@ -137,15 +120,34 @@ std::set<Facet*> Facet::GetNeighbours() const{
 }
 
 std::pair<double, double> Facet::GetZExtremums() const{
-	Point3D current_coordinates = points[0]->GetCoordinates();
-	double z_max = current_coordinates.z;
-	double z_min = current_coordinates.z;
+	double current_z = points[0]->GetZ();
+	double z_max = current_z;
+	double z_min = current_z;
 	for(int i = 1; i < 3; i++){
-		current_coordinates = points[i]->GetCoordinates();
-		z_max = current_coordinates.z > z_max ? current_coordinates.z : z_max;
-		z_min = current_coordinates.z < z_min ? current_coordinates.z : z_min;
+		current_z = points[i]->GetZ();
+		z_max = current_z > z_max ? current_z : z_max;
+		z_min = current_z < z_min ? current_z : z_min;
 	}
 	return std::make_pair(z_min, z_max);	
+}
+
+int Facet::AmountOfIntersectionsWithZPlane(const double z_plane) const{
+	const std::pair<double, double> facet_extremums = GetZExtremums();
+	if( (facet_extremums.first > z_plane) || (facet_extremums.second < z_plane) )
+		return 0;
+	if( (facet_extremums.first < z_plane) && (facet_extremums.second > z_plane) )
+		return 2;
+	if( (facet_extremums.first == z_plane) && (facet_extremums.second == z_plane) )
+		return 3;
+	if( (facet_extremums.first == z_plane) || (facet_extremums.second == z_plane) ){
+		int amounts = 0;
+		for(int i = 0; i < 3; i++)
+			if(points[i]->GetZ() == z_plane)
+				amounts++;
+		return amounts;		
+	}
+	assert(false);	//should never be happened
+	return 0;
 }
 
 void Facet::PrintFacet() const {
@@ -157,10 +159,11 @@ void Facet::PrintFacet() const {
 	Print(normal.vector_top);
 }
 
-//if to see from beginning to end of line, facet normal will be pointed to right
-FacetIntersection Facet::IntersectionWithZPlane(const double z) const{
-	const FacetPointsTriplet triplet = {points[0], points[1], points[2]};
-	return FacetIntersection(triplet, z);
+std::vector<FacetPoint*> Facet::GetPoints() const{
+	std::vector<FacetPoint*> result_vector;
+	for(int i = 0; i < 3; i++)
+		result_vector.push_back(points[i]);
+	return result_vector;
 }
 
 FacetBody::FacetBody(std::set<Facet*> body_facets){
@@ -211,53 +214,179 @@ std::pair<double, double> FacetBody::GetZExtremums() const{
 	return std::make_pair(z_min, z_max);
 }
 
-std::list<Point3D> FacetBody::SplitByZPlane(double z_plane){
-	std::pair<double, double> facet_extremums;
-	std::set<Facet*> affected_facets;
-	for(auto &it : facets){
-		facet_extremums = it->GetZExtremums()
-		if( (facet_extremums.first > z_plane) || (facet_extremums.second < z_plane) ){
-			//z_plane below or above facet - NOT OK, it's not affected at all
-			continue;
-		}
-		if( (facet_extremums.first < z_plane) && (facet_extremums.second > z_plane) ){
-			//z_plane between facet extremums - OK, this will form part of contour
-			affected_facets.insert(it);
-			continue;
-		}
-		if( (facet_extremums.first == z_plane) && (facet_extremums.second == z_plane) ){
-			//both max_z and min_z in z_plane -- NOT OK, whole facet in z_plane, we will use neighbourhoods instead
-			continue;
-		}
-		if( (facet_extremums.first == z_plane) || (facet_extremums.second == z_plane) ){
-			//
-		}
-	}
+bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3D>> *result_contours){
+	/*
+	(one Facet body potentially can be split into more than one contour by one plane)
+	*/
+	result_contours->clear();
+	Point3D cross_point;
+	std::list<Point3D> current_waypoints;
+	Facet* facet_base = NULL;
+	Facet* first_facet = NULL;
+	Facet* previous_facet_base = NULL;
+	std::set<Facet*> current_neighbours;
+	
+	bool found_next_facet;
 	/*
 	Make 2 sets of Facets "One cross point", "Two cross points"
+	*/
+	std::set<Facet*> one_cross_point, two_cross_points;
+	/*
 	For each facet in body:
 		Check amount of cross points (input: contour's plane, output: Amount of cross points (0,1,2 or 3) )
 			If 1 or 2 cross points, add facet in respective set
 	End for
-	If at least one set is not empty
-		Make array of lists of Facets "result contours" (one Facet body potentially can be split into more than one contour by one plane)
-	Take any facet_base from set "Two cross points"
-	Facet_base is also First_facet_base
-	Take first list of Facets from result_contours - "current_final_list"
-	While set "Two cross points" is not empty:
-		For each neighbour of Facet_base:
-			If neighbour belongs to set "one cross point"
-				
-				remove neighbour from set "one cross point"
-			If neighbour belongs to set "two cross points",
-				Find point of intersecton of common line and plane
-				Add this point to current final list
-				Remove Facet_base from set "Two cross points"
-				Neighbour is next Facet_base now
-		End for
-		Remove Facet_base from set "Two cross points"
-		
 	*/
+	int amounts;
+	for(auto &it : facets){
+		amounts = it->AmountOfIntersectionsWithZPlane(z_plane);
+		if(amounts == 2)
+			two_cross_points.insert(it);
+		if(amounts == 1)
+			one_cross_point.insert(it);		
+	}
+	/*
+	While set "Two cross points" is not empty:
+		If Facet_base is not defined (NULL):
+			facet_base is first facet from set "Two cross points"	
+			first_facet_base is facet_base
+			if current_final_list is not empty:
+				push current_final_list into result array
+				create new current_final_list
+			end if
+		End if
+		Array neighbours is all neighbours of facet_base
+		previous_facet_base is facet_base
+		found_next_facet is false
+		For each of neighbours:
+			If current_neighbour belongs to set "one cross point"
+				facet_base is set to current_neighbour 
+				found_next_facet is true
+				break loop
+			If current_neighbour belongs to set "two cross points",
+				Find point of intersecton of common line (joining facet_base and current_neighbour) and plane
+				Add this point to waypoints
+				Facet_base is set to current_neighbour 
+				found_next_facet is true
+				break loop
+		End for
+		If found_next_facet is false:
+			if first_facet_base is in current_neighbours:
+				Find point of intersecton of common line (joining facet_base and first_facet_base) and plane
+				Add this point to waypoints
+			End if
+			facet_base is not defined (NULL)
+		End if
+		Remove previous_facet_base from set "Two cross points"
+		Remove previous_facet_base from set "One cross point" (it can be in any of these sets)
+	End while
+	*/
+	while(!two_cross_points.empty()){
+		if(facet_base == NULL){
+			facet_base = *two_cross_points.begin();
+			first_facet = facet_base;
+			if(!current_waypoints.empty()){
+				result_contours->push_back(current_waypoints);
+				current_waypoints.clear();
+			}
+		}
+		current_neighbours = facet_base->GetNeighbours();
+		previous_facet_base = facet_base;
+		found_next_facet = false;
+		for(auto &neighbour : current_neighbours){
+			if(one_cross_point.find(neighbour) != one_cross_point.end()){
+				facet_base = neighbour;
+				found_next_facet = true;
+				break;				
+			}
+			if(two_cross_points.find(neighbour) != two_cross_points.end()){
+				if( Facets::IntersectionFacetsAndZPlane(facet_base, neighbour, z_plane, &cross_point) )
+					current_waypoints.push_back(cross_point);
+				else {
+					assert(false);
+					return false;
+				}
+				facet_base = neighbour;
+				found_next_facet = true;
+				break;
+			}
+		}
+		if(!found_next_facet){
+			if(current_neighbours.find(first_facet) != current_neighbours.end()){
+				if( Facets::IntersectionFacetsAndZPlane(facet_base, first_facet, z_plane, &cross_point) )
+					current_waypoints.push_back(cross_point);
+				else {
+					return false;
+					assert(false);
+				}
+			}
+			facet_base = NULL;
+		}
+		two_cross_points.erase(two_cross_points.find(previous_facet_base));
+		one_cross_point.erase(one_cross_point.find(previous_facet_base));
+	}	
+	/*		
+	While set "One cross point" is not empty
+		If Facet_base is not defined (NULL):
+			if current_final_list is not empty:
+				push current_final_list into result array
+				create new current_final_list
+			end if
+			facet_base is first facet from set "One cross point"	
+			Add this one cross point to wwaypoints (it's one of facet's edges)
+		End if
+		Array neighbours is all neighbours of facet_base
+		previous_facet_base is facet_base
+		found_next_facet is false
+		For each of neighbours:
+			If current_neighbour belongs to set "one cross point"
+				facet_base is set to current_neighbour 
+				found_next_facet is true
+				break loop
+			End if
+		End for
+		if found_next_facet is false:
+			if first_facet is NOT in current_neighbours
+				error: it should be
+			facet_base is not defined (NULL)
+		Remove previous_facet_base from set "One cross point"
+	End while
+	*/
+	assert(facet_base == NULL);
+	while(!one_cross_point.empty()){
+		if(facet_base == NULL){
+			if(!current_waypoints.empty()){
+				result_contours->push_back(current_waypoints);
+				current_waypoints.clear();
+			}
+			facet_base = *one_cross_point.begin();
+			first_facet = facet_base;			
+		}
+		current_neighbours = facet_base->GetNeighbours();
+		previous_facet_base = facet_base;
+		found_next_facet = false;
+		for(auto &neighbour : current_neighbours){
+			if(one_cross_point.find(neighbour) != one_cross_point.end()){
+				if( !Facets::IntersectionFacetsAndZPlane(facet_base, neighbour, z_plane, &cross_point) ){
+					assert(false);
+					return false;
+				}
+				facet_base = neighbour;
+				found_next_facet = true;
+				break;				
+			}
+		}
+		if(!found_next_facet){
+			current_waypoints.push_back(cross_point);
+			if(current_neighbours.find(first_facet) == current_neighbours.end()){
+				assert(false);	//It should be there
+				return false;
+			}
+			facet_base = NULL;
+		}
+		one_cross_point.erase(one_cross_point.find(previous_facet_base));
+	}
+	return true;
 }
 
 void FacetBody::PrintBody() const {
@@ -267,14 +396,16 @@ void FacetBody::PrintBody() const {
 		it->PrintFacet();
 }
 
-CompositeFacetBody::CompositeFacetBody(std::vector<Triangle3D> triangles, std::list<Error> *new_errors_list){
-	errors_list = new_errors_list;
+CompositeFacetBody::CompositeFacetBody(const std::vector<Triangle3D> triangles, std::list<Error> *errors_list, bool *error_flag){
 	std::set<Facet*> all_facets;
 	std::vector<std::set<Facet*>> facet_groups;
 	bool abort = false;
 
-	if(!MakeFacetsFromTriangles(triangles, all_facets))
+	if(!MakeFacetsFromTriangles(triangles, all_facets)){
+		*error_flag = true;
+		errors_list->push_back(ERROR_FACET_BODY_UNABLE_TO_CREATE);
 		return;
+	}
 
 	for(auto &it : all_facets)
 		if(!it->CheckNeighbourFacets())
@@ -288,6 +419,8 @@ CompositeFacetBody::CompositeFacetBody(std::vector<Triangle3D> triangles, std::l
 		std::cout<<"Making composite facet body is aborted!"<<std::endl;
 		for(auto &it : all_facets)
 			delete it;
+		*error_flag = true;
+		errors_list->push_back(ERROR_FACET_BODY_UNABLE_TO_CREATE);
 		return;
 	}	
 
@@ -298,9 +431,10 @@ CompositeFacetBody::CompositeFacetBody(std::vector<Triangle3D> triangles, std::l
 	for(auto &it : facet_bodies)
 		if(!it.IsValid())
 			this->valid = NOT_VALID;
-
-	std::cout<<"CompositeFacetBody successfully made"<<std::endl;
-	PrintCompositeBody();
+	if(this->valid == NOT_VALID){
+		*error_flag = true;
+		errors_list->push_back(ERROR_FACET_BODY_VALIDITY_CHECK_NOT_PASSED);
+	}
 }
 
 CompositeFacetBody::~CompositeFacetBody(){}
