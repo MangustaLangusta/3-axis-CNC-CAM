@@ -1,5 +1,7 @@
 #include "UserInterface.h"
 
+#define TEST_SPACING_TO_SPLIT 25
+
 
 UserInterface::UserInterface(TaskManager* new_task_manager_assigned){
 	task_manager_assigned = new_task_manager_assigned;
@@ -103,15 +105,23 @@ void ConsoleUserInterface::RunMainMenuState(){
 
 void ConsoleUserInterface::RunQuickStartState(){
 	std::cout<<"QuickStart"<<std::endl;
-	RequestData project_request, process_file_request;
+		//making new project
+	RequestData project_request, process_file_request, split_request;
 	project_request.AddRequestCode(REQUEST_CREATE_NEW_PROJECT);
 	project_request.AddProjectName(ProjectName("TestProject"));
 	assert(project_request.IsValid());
 	task_manager_assigned->Request(project_request);
+		//choosing filename
 	process_file_request.AddFilename(Filename("test.STL"));
 	process_file_request.AddRequestCode(REQUEST_PROCESS_INPUT_FILE);
 	assert(process_file_request.IsValid());
 	task_manager_assigned->Request(process_file_request);
+		//making standart set of contours
+	SplitSettings test_split_settings(TEST_SPACING_TO_SPLIT);
+	split_request.AddRequestCode(REQUEST_SPLIT_FACET_BODY_TO_CONTOURS);
+	split_request.AddSplitSettings(test_split_settings);
+	assert(split_request.IsValid());
+	task_manager_assigned->Request(split_request);
 	state = MainMenu;
 }
 

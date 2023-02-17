@@ -11,6 +11,7 @@
 #include "RawSTL.h"
 #include "Facets.h"
 #include "Utility.h"
+#include "BasicStructs.h"
 
 
 /*
@@ -40,7 +41,8 @@ enum RequestCode {
 	REQUEST_EMERGENCY_STOP,
 	REQUEST_CREATE_NEW_PROJECT,
 	REQUEST_MAKE_GCODE_FROM_FILE,
-	REQUEST_PROCESS_INPUT_FILE	
+	REQUEST_PROCESS_INPUT_FILE,
+	REQUEST_SPLIT_FACET_BODY_TO_CONTOURS,
 };
 
 class RequestData{
@@ -102,10 +104,12 @@ class TaskProcessInputFile : public Task{
 
 class TaskSplitCompositeFacetBodyToContours : public Task{
 	private:
-	
+		Project* project;
+		SplitSettings split_settings;
 	public:
-		//TaskSplitCompositeFacetBodyToContours(TaskManager* new_assigned_task_manager
-	
+		TaskSplitCompositeFacetBodyToContours(TaskManager* new_assigned_task_manager, Project* new_project, const SplitSettings new_split_settings);
+		~TaskSplitCompositeFacetBodyToContours();
+		void Execute();
 };
 
 class TaskManager{

@@ -54,10 +54,9 @@ struct Matrix3D{
 
 namespace MathOperations{
 	MathVector3D VectorMultiplication(const MathVector3D &vec_a, const MathVector3D &vec_b);
-	std::vector<Plane3D> CreateZPlanesArray(double interval, std::pair<double, double> z_extremums);	
+	std::vector<Plane3D> CreateZPlanesArray(std::pair<double, double> boundaries, double spacing);	
 	double Interpolate(const double x1, const double x2, const double ratio);
 	bool IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point);
-	std::vector<Plane3D> MakeZPlanesArray(std::pair<double, double> boundaries, double spacing);
 };
 
 enum Validity {NOT_VALID, VALID};

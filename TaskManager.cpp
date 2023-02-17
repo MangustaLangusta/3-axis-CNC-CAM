@@ -38,6 +38,9 @@ bool RequestData::IsValid(){
 			if(filename_data != "")
 				return true;
 			return false;
+		//Case where correct split settings required
+		case REQUEST_SPLIT_FACET_BODY_TO_CONTOURS:
+			return split_settings.IsValid();
 		//All wrong names (including NIL code):
 		default:
 			return false;
@@ -89,6 +92,15 @@ TaskProcessInputFile::TaskProcessInputFile(TaskManager* new_assigned_task_manage
 }
 
 TaskProcessInputFile::~TaskProcessInputFile(){}
+
+TaskSplitCompositeFacetBodyToContours::TaskSplitCompositeFacetBodyToContours(TaskManager* new_assigned_task_manager, 
+																																						Project* new_project, 
+																																						const SplitSettings new_split_settings) : Task(new_assigned_task_manager){
+	project = new_project;
+	split_settings= new_split_settings;
+}
+		
+TaskSplitCompositeFacetBodyToContours::~TaskSplitCompositeFacetBodyToContours(){}
 
 void TaskManager::CommandLineArgumentsToTasks(int argc, char *argv[]){
 	for(int i = 1; i < argc; i++){
@@ -181,6 +193,9 @@ void TaskManager::Request(const RequestData request_data){
 		case REQUEST_PROCESS_INPUT_FILE:
 			tasks.emplace_back(new TaskProcessInputFile(this, request_data.GetFilename()));
 			break;
+		case REQUEST_SPLIT_FACET_BODY_TO_CONTOURS:
+			tasks.emplace_back( new TaskSplitCompositeFacetBodyToContours(this, assigned_project, request_data.GetSplitSettings()) );
+			break;
 		default:
 			assert(false);
 	}
@@ -227,3 +242,26 @@ void TaskProcessInputFile::Execute(){
 	project->AssignCompositeFacetBody(composite_facet_body);
 }
 
+void TaskSplitCompositeFacetBodyToContours::Execute(){
+	std::list<Error>* errors_list;
+	bool *errors_flag;
+	std::vector<Plane3D> split_planes;
+	std::pair<double, double> boundaries;
+	std::vector<std::list<Point3D>> raw_contours;
+	CompositeFacetBody* composite_body;
+	
+	composite_body = project->GetAssignedCompositeFacetBody();
+	assert(composite_body != NULL);
+	if(split_settings.IsWholeZRange())
+		boundaries = composite_body->GetZExtremums();
+	else 
+		boundaries = std::make_pair(split_settings.z_max, split_settings.z_min);
+	std::cout<<"z extremums found"<<std::endl;
+	split_planes = MathOperations::CreateZPlanesArray(boundaries, split_settings.spacing);
+	for(auto &it : split_planes)
+		std::cout<<it.plane_point.z<<" ";
+	std::cout<<std::endl;
+	return;
+
+	
+}

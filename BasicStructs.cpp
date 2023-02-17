@@ -62,7 +62,7 @@ MathVector3D MathOperations::VectorMultiplication(const MathVector3D &vec_a, con
 	return result_vector;
 }
 
-std::vector<Plane3D> MathOperations::CreateZPlanesArray(double interval, std::pair<double, double> z_extremums){
+std::vector<Plane3D> MathOperations::CreateZPlanesArray(std::pair<double, double> z_extremums, double interval){
 	const MathVector3D new_normal(Point3D{0,0,0}, Point3D{0,0,1});
 	Point3D new_plane_point;
 	std::vector<Plane3D> result_vector;
@@ -75,8 +75,12 @@ std::vector<Plane3D> MathOperations::CreateZPlanesArray(double interval, std::pa
 		return result_vector;
 	}
 	diff = z_extremums.first - z_extremums.second;
+	std::cout<<"diff = "<<diff<<std::endl;
+	std::cout<<"interval = "<<interval<<std::endl;
 	planes_amount = floor(diff / interval);
+	std::cout<<"planes_amount = "<<planes_amount<<std::endl;
 	delta_z = diff / planes_amount;
+	std::cout<<"delta_z = "<<delta_z<<std::endl;
 	for(int i = 0; i < planes_amount; i++){
 		new_plane_point.z = new_plane_point.z + delta_z * i;
 		result_vector.emplace_back(Plane3D(new_normal, new_plane_point));
