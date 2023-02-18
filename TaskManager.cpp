@@ -94,9 +94,7 @@ TaskProcessInputFile::TaskProcessInputFile(TaskManager* new_assigned_task_manage
 TaskProcessInputFile::~TaskProcessInputFile(){}
 
 TaskSplitCompositeFacetBodyToContours::TaskSplitCompositeFacetBodyToContours(TaskManager* new_assigned_task_manager, 
-																																						Project* new_project, 
 																																						const SplitSettings new_split_settings) : Task(new_assigned_task_manager){
-	project = new_project;
 	split_settings= new_split_settings;
 }
 		
@@ -163,6 +161,7 @@ void TaskManager::StartTasksExecution(){
 	while(IsExecutionPermitted()){
 		ExecuteNextTask();
 	}
+	std::cout<<"End task execution"<<std::endl;
 }
 
 void TaskManager::AssignProject(Project* new_project){
@@ -194,7 +193,7 @@ void TaskManager::Request(const RequestData request_data){
 			tasks.emplace_back(new TaskProcessInputFile(this, request_data.GetFilename()));
 			break;
 		case REQUEST_SPLIT_FACET_BODY_TO_CONTOURS:
-			tasks.emplace_back( new TaskSplitCompositeFacetBodyToContours(this, assigned_project, request_data.GetSplitSettings()) );
+			tasks.emplace_back( new TaskSplitCompositeFacetBodyToContours(this, request_data.GetSplitSettings()) );
 			break;
 		default:
 			assert(false);
@@ -243,25 +242,34 @@ void TaskProcessInputFile::Execute(){
 }
 
 void TaskSplitCompositeFacetBodyToContours::Execute(){
-	std::list<Error>* errors_list;
-	bool *errors_flag;
+	std::list<Error> errors_list;
+	bool errors_flag;
 	std::vector<Plane3D> split_planes;
 	std::pair<double, double> boundaries;
 	std::vector<std::list<Point3D>> raw_contours;
 	CompositeFacetBody* composite_body;
+	Project *project;
+	
+	project = assigned_task_manager->GetAssignedProject();
+	assert(project != NULL);
 	
 	composite_body = project->GetAssignedCompositeFacetBody();
 	assert(composite_body != NULL);
+	
 	if(split_settings.IsWholeZRange())
 		boundaries = composite_body->GetZExtremums();
 	else 
 		boundaries = std::make_pair(split_settings.z_max, split_settings.z_min);
-	std::cout<<"z extremums found"<<std::endl;
 	split_planes = MathOperations::CreateZPlanesArray(boundaries, split_settings.spacing);
-	for(auto &it : split_planes)
-		std::cout<<it.plane_point.z<<" ";
-	std::cout<<std::endl;
-	return;
-
 	
+	raw_contours = composite_body->SplitByZPlanes(split_planes, &errors_list, &errors_flag);
+	if(errors_flag){
+		for(auto &it : errors_list){
+			ErrorMessage("", it);
+		}
+	}
+	else {
+		Message("Facet body splitted by z contours");
+	}
+	return;
 }

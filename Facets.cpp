@@ -13,7 +13,7 @@ std::vector<Point3D> Facets::GetCommonPoints(const Facet* facet_a, const Facet* 
 }
 
 bool Facets::IntersectionFacetsAndZPlane(const Facet* facet_a, const Facet* facet_b, double z_plane, Point3D* result_point){
-	result_point = NULL;
+	assert(result_point != NULL);
 	std::vector<Point3D> common_points = Facets::GetCommonPoints(facet_a, facet_b);
 	switch(common_points.size()){
 		case 0:
@@ -214,7 +214,7 @@ std::pair<double, double> FacetBody::GetZExtremums() const{
 	return std::make_pair(z_min, z_max);
 }
 
-bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3D>> *result_contours){
+bool FacetBody::SplitByZPlane(const Plane3D z_plane, std::vector<std::list<Point3D>> *result_contours){
 	/*
 	(one Facet body potentially can be split into more than one contour by one plane)
 	*/
@@ -225,6 +225,7 @@ bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3
 	Facet* first_facet = NULL;
 	Facet* previous_facet_base = NULL;
 	std::set<Facet*> current_neighbours;
+	double z_coord = z_plane.plane_point.z;
 	
 	bool found_next_facet;
 	/*
@@ -239,7 +240,7 @@ bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3
 	*/
 	int amounts;
 	for(auto &it : facets){
-		amounts = it->AmountOfIntersectionsWithZPlane(z_plane);
+		amounts = it->AmountOfIntersectionsWithZPlane(z_coord);
 		if(amounts == 2)
 			two_cross_points.insert(it);
 		if(amounts == 1)
@@ -281,7 +282,7 @@ bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3
 		Remove previous_facet_base from set "One cross point" (it can be in any of these sets)
 	End while
 	*/
-	while(!two_cross_points.empty()){
+	while(!two_cross_points.empty() || found_next_facet){		//found next facet flag - in case 2cross_points empty, but have single point facet
 		if(facet_base == NULL){
 			facet_base = *two_cross_points.begin();
 			first_facet = facet_base;
@@ -300,8 +301,9 @@ bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3
 				break;				
 			}
 			if(two_cross_points.find(neighbour) != two_cross_points.end()){
-				if( Facets::IntersectionFacetsAndZPlane(facet_base, neighbour, z_plane, &cross_point) )
+				if( Facets::IntersectionFacetsAndZPlane(facet_base, neighbour, z_coord, &cross_point) ){;
 					current_waypoints.push_back(cross_point);
+				}
 				else {
 					assert(false);
 					return false;
@@ -313,17 +315,21 @@ bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3
 		}
 		if(!found_next_facet){
 			if(current_neighbours.find(first_facet) != current_neighbours.end()){
-				if( Facets::IntersectionFacetsAndZPlane(facet_base, first_facet, z_plane, &cross_point) )
+				if( Facets::IntersectionFacetsAndZPlane(facet_base, first_facet, z_coord, &cross_point) )
 					current_waypoints.push_back(cross_point);
 				else {
-					return false;
 					assert(false);
+					return false;
 				}
 			}
 			facet_base = NULL;
 		}
-		two_cross_points.erase(two_cross_points.find(previous_facet_base));
-		one_cross_point.erase(one_cross_point.find(previous_facet_base));
+		if(two_cross_points.find(previous_facet_base) != two_cross_points.end()){
+			two_cross_points.erase(two_cross_points.find(previous_facet_base));
+		}
+		if(one_cross_point.find(previous_facet_base) != one_cross_point.end()){
+			one_cross_point.erase(one_cross_point.find(previous_facet_base));
+		}
 	}	
 	/*		
 	While set "One cross point" is not empty
@@ -367,7 +373,7 @@ bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3
 		found_next_facet = false;
 		for(auto &neighbour : current_neighbours){
 			if(one_cross_point.find(neighbour) != one_cross_point.end()){
-				if( !Facets::IntersectionFacetsAndZPlane(facet_base, neighbour, z_plane, &cross_point) ){
+				if( !Facets::IntersectionFacetsAndZPlane(facet_base, neighbour, z_coord, &cross_point) ){
 					assert(false);
 					return false;
 				}
@@ -437,7 +443,9 @@ CompositeFacetBody::CompositeFacetBody(const std::vector<Triangle3D> triangles, 
 	}
 }
 
-CompositeFacetBody::~CompositeFacetBody(){}
+CompositeFacetBody::~CompositeFacetBody(){
+	std::cout<<"CompositeFacetBody deleted!"<<std::endl;
+}
 
 bool CompositeFacetBody::MakeFacetPointsFromTriangles(const std::vector<Triangle3D> &triangles, std::map<Point3D, FacetPoint*> &result_map){
 	FacetPoint *ptr_facet_point = NULL;
@@ -527,7 +535,23 @@ bool CompositeFacetBody::GroupConnectedFacetsTogether(std::set<Facet*> source_fa
 	return true;
 }
 
-
+std::vector<std::list<Point3D>> CompositeFacetBody::SplitByZPlane(const Plane3D z_plane, std::list<Error> *errors_list, bool *error_flag){
+	std::vector<std::list<Point3D>> result, intermediate_results;
+	*error_flag = false;
+	for(auto &it_bodies : facet_bodies){
+		intermediate_results.clear();
+		if( it_bodies.SplitByZPlane(z_plane, &intermediate_results) ){
+			for(auto &it : intermediate_results)
+				result.push_back(it);
+		}
+		else {
+			*error_flag = true;
+			errors_list->push_back(ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS);
+			return result;
+		}			
+	}
+	return result;
+}
 
 void CompositeFacetBody::Shift(MathVector3D shift_vector){
 	std::cout<<"Some code for shifting"<<std::endl;
@@ -549,6 +573,29 @@ std::pair<double, double> CompositeFacetBody::GetZExtremums() const {
 		z_max = body_extremums.second > z_max ? body_extremums.second : z_max;
 	}
 	return std::make_pair(z_min, z_max);
+}
+
+std::vector<std::list<Point3D>> CompositeFacetBody::SplitByZPlanes(	const std::vector<Plane3D> split_planes, 
+																																		std::list<Error> *errors_list, 
+																																		bool *error_flag ) {
+	
+	std::vector<std::list<Point3D>> result, intermediate_results;
+	
+	assert(error_flag != NULL);
+	assert(errors_list != NULL);
+	*error_flag = false;
+	errors_list->clear();
+	for(auto &it_planes : split_planes){
+		intermediate_results = SplitByZPlane(it_planes, errors_list, error_flag);
+		if(!*error_flag){
+			for(auto &it : intermediate_results)
+				result.push_back(it);
+		}
+		else{
+			return result;
+		}
+	}
+	return result;
 }
 
 void CompositeFacetBody::PrintCompositeBody() const {

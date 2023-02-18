@@ -104,10 +104,9 @@ class TaskProcessInputFile : public Task{
 
 class TaskSplitCompositeFacetBodyToContours : public Task{
 	private:
-		Project* project;
 		SplitSettings split_settings;
 	public:
-		TaskSplitCompositeFacetBodyToContours(TaskManager* new_assigned_task_manager, Project* new_project, const SplitSettings new_split_settings);
+		TaskSplitCompositeFacetBodyToContours(TaskManager* new_assigned_task_manager, const SplitSettings new_split_settings);
 		~TaskSplitCompositeFacetBodyToContours();
 		void Execute();
 };

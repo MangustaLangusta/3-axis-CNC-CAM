@@ -68,21 +68,20 @@ std::vector<Plane3D> MathOperations::CreateZPlanesArray(std::pair<double, double
 	std::vector<Plane3D> result_vector;
 	double diff;
 	double delta_z;
+	double z_min, z_max;
 	int planes_amount;
-	new_plane_point = {0,0,z_extremums.first};
-	result_vector = {Plane3D(new_normal, new_plane_point)};
+	
+	z_min = std::min(z_extremums.first, z_extremums.second);
+	z_max = std::max(z_extremums.first, z_extremums.second);
 	if(interval == 0){
 		return result_vector;
 	}
-	diff = z_extremums.first - z_extremums.second;
-	std::cout<<"diff = "<<diff<<std::endl;
-	std::cout<<"interval = "<<interval<<std::endl;
-	planes_amount = floor(diff / interval);
-	std::cout<<"planes_amount = "<<planes_amount<<std::endl;
+	diff = z_max - z_min;
+	assert(diff >= 0);
+	planes_amount = floor(diff / abs(interval) );
 	delta_z = diff / planes_amount;
-	std::cout<<"delta_z = "<<delta_z<<std::endl;
-	for(int i = 0; i < planes_amount; i++){
-		new_plane_point.z = new_plane_point.z + delta_z * i;
+	for(int i = 0; i <= planes_amount; i++){
+		new_plane_point.z = z_min + delta_z * i;
 		result_vector.emplace_back(Plane3D(new_normal, new_plane_point));
 	}	
 	return result_vector;
@@ -93,9 +92,9 @@ double MathOperations::Interpolate(const double x1, const double x2, const doubl
 }
 
 bool MathOperations::IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point){
+	assert(intersection_point != NULL);
 	Point3D point_a = line.a;
 	Point3D point_b = line.b;
-	intersection_point = NULL;
 	if( ( (point_a.z > z_plane) && (point_b.z > z_plane) ) || ( (point_a.z < z_plane) && (point_b.z < z_plane) ) )
 		return false;
 	double delta_z = point_b.z - point_a.z;

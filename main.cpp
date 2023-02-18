@@ -51,6 +51,7 @@ void CreateGCode(std::string input_file_name){
 int main(int argc, char *argv[]){
 	TaskManager main_task_manager(argc, argv);
 	main_task_manager.StartTasksExecution();
+	std::cout<<"Normal exit"<<std::endl;
 	/*
 	RawSTL raw_stl(DEFAULT_INPUT_FILE_NAME);
 	CompositeFacetBody composite_facet_body(raw_stl.GetTriangles3D());
@@ -89,8 +90,8 @@ int main(int argc, char *argv[]){
 
 
 /*
-g++ -c main.cpp Facets.cpp TaskManager.cpp UserInterface.cpp BasicStructs.cpp Utility.cpp RawSTL.cpp Project.cpp ErrorCodes.cpp
-g++ main.o Facets.o TaskManager.o UserInterface.o BasicStructs.o Utility.o RawSTL.o Project.o ErrorCodes.o
+g++ -c main.cpp Facets.cpp TaskManager.cpp UserInterface.cpp BasicStructs.cpp Utility.cpp RawSTL.cpp Project.cpp Errors.cpp 
+g++ main.o Facets.o TaskManager.o UserInterface.o BasicStructs.o Utility.o RawSTL.o Project.o Errors.o 
 
 
 

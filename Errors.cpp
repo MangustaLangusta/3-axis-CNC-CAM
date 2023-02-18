@@ -9,6 +9,7 @@ const std::map<ErrorCode, std::string> Errors::error_codes_string_assignments = 
 	{0x5003, "ERROR_STL_FILE_EOF_NOT_REACHED"},
 	{0x5004, "ERROR_FACET_BODY_UNABLE_TO_CREATE"},
 	{0x5005, "ERROR_FACET_BODY_VALIDITY_CHECK_NOT_PASSED"},
+	{0x5006, "ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS"},
 	{0xA000, "GENERAL_FATAL_ERROR"}
 };
 

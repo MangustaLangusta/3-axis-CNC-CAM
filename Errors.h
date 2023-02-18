@@ -13,12 +13,13 @@
 
 /****************************************/
 /*			ERRORS													*/
-#define GENERAL_ERROR																0x5000
-#define ERROR_STL_FILE_INVALID											0x5001
-#define ERROR_STL_FILE_UNEXPECTED_EOF 							0x5002
-#define ERROR_STL_FILE_EOF_NOT_REACHED							0x5003
-#define ERROR_FACET_BODY_UNABLE_TO_CREATE						0x5004
-#define ERROR_FACET_BODY_VALIDITY_CHECK_NOT_PASSED	0x5005
+#define GENERAL_ERROR																	0x5000
+#define ERROR_STL_FILE_INVALID												0x5001
+#define ERROR_STL_FILE_UNEXPECTED_EOF 								0x5002
+#define ERROR_STL_FILE_EOF_NOT_REACHED								0x5003
+#define ERROR_FACET_BODY_UNABLE_TO_CREATE							0x5004
+#define ERROR_FACET_BODY_VALIDITY_CHECK_NOT_PASSED		0x5005
+#define ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS	0x5006
 /****************************************/
 /*			FATAL ERRORS										*/
 #define GENERAL_FATAL_ERROR									0xA000
