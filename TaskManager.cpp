@@ -148,6 +148,8 @@ void TaskManager::StartConsoleUserInterface(){
 void TaskManager::ExecuteNextTask() {
 	if(tasks.empty())
 		user_interface->Run();
+	if(tasks.empty())
+		return;
 	Task* task = *tasks.begin();
 	if(task != NULL){
 		task->Execute();
@@ -161,7 +163,6 @@ void TaskManager::StartTasksExecution(){
 	while(IsExecutionPermitted()){
 		ExecuteNextTask();
 	}
-	std::cout<<"End task execution"<<std::endl;
 }
 
 void TaskManager::AssignProject(Project* new_project){
@@ -271,5 +272,7 @@ void TaskSplitCompositeFacetBodyToContours::Execute(){
 	else {
 		Message("Facet body splitted by z contours");
 	}
+	
+	
 	return;
 }
