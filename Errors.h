@@ -9,7 +9,8 @@
 #define NORMAL															0x0000
 /****************************************/
 /*			WARNINGS												*/
-#define GENERAL_WARNING		 									0x0001
+#define GENERAL_WARNING		 										0x0001
+#define WARNING_CONTOUR_NOT_IN_SINGLE_PLANE		0x0002
 
 /****************************************/
 /*			ERRORS													*/
@@ -32,6 +33,16 @@ namespace Errors {
 	extern const std::map<ErrorCode, std::string> error_codes_string_assignments;
 	std::string ErrorCodeToString(ErrorCode error_code);
 	bool IsFatal(ErrorCode error_code);
+};
+
+class ErrorFlag{
+	public:
+		bool warning_flag;
+		bool error_flag;
+		bool fatal_error_flag;
+		ErrorFlag();
+		~ErrorFlag();
+		ClearFlags();
 };
 
 class Error{

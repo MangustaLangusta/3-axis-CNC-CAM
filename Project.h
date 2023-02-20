@@ -3,6 +3,7 @@
 
 #include <string>
 #include "Facets.h"
+#include "Contours.h"
 #include "Errors.h"
 
 class Project{
@@ -10,13 +11,14 @@ class Project{
 		std::string project_name;
 		std::string filename;
 		CompositeFacetBody* composite_facet_body;
-		
+		ContoursAggregator* contours_aggregator;
 	public:
 		Project();
 		Project(std::string new_project_name);
 		~Project();
 		void AssignCompositeFacetBody(CompositeFacetBody* new_composite_facet_body);
 		CompositeFacetBody* GetAssignedCompositeFacetBody();
+		
 		void SetProjectName(std::string new_project_name);
 		std::string GetProjectName();
 		void SetFileName(std::string new_filename);

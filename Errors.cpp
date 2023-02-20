@@ -3,6 +3,7 @@
 const std::map<ErrorCode, std::string> Errors::error_codes_string_assignments = {
 	{0x0000, "NORMAL"},
 	{0x0001, "GENERAL_WARNING"},
+	{0x0002, "WARNING_CONTOUR_NOT_IN_SINGLE_PLANE"},
 	{0x5000, "GENERAL_ERROR"},
 	{0x5001, "ERROR_STL_FILE_INVALID"},
 	{0x5002, "ERROR_STL_FILE_UNEXPECTED_EOF"},
@@ -23,6 +24,20 @@ std::string Errors::ErrorCodeToString(ErrorCode error_code){
 
 bool Errors::IsFatal(ErrorCode error_code){
 	return (error_code >= GENERAL_FATAL_ERROR);
+}
+
+ErrorFlag::ErrorFlag(){
+	warning_flag = false;
+	error_flag = false;
+	fatal_error_flag = false;
+}
+
+ErrorFlag::~ErrorFlag(){}
+
+ErrorFlag::ClearFlags(){
+	warning_flag = false;
+	error_flag = false;
+	fatal_error_flag = false;
 }
 
 Error::Error(){}
