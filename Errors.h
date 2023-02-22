@@ -21,6 +21,7 @@
 #define ERROR_FACET_BODY_UNABLE_TO_CREATE							0x5004
 #define ERROR_FACET_BODY_VALIDITY_CHECK_NOT_PASSED		0x5005
 #define ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS	0x5006
+#define ERROR_CONTOUR_NOT_VALID												0x5007
 /****************************************/
 /*			FATAL ERRORS										*/
 #define GENERAL_FATAL_ERROR									0xA000
@@ -42,7 +43,10 @@ class ErrorFlag{
 		bool fatal_error_flag;
 		ErrorFlag();
 		~ErrorFlag();
-		ClearFlags();
+		bool HaveErrors() const;
+		bool HaveWarnings() const;
+		void RiseError();
+		void ClearFlags();
 };
 
 class Error{

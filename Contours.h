@@ -4,9 +4,10 @@
 #include <list>
 #include <vector>
 #include <map>
-#inclued <set>
+#include <set>
 #include "BasicStructs.h"
 #include "Errors.h"
+#include "Utility.h"
 
 class Contour{
 	private:
@@ -14,8 +15,8 @@ class Contour{
 	public:
 		Contour(const std::list<Point3D> new_waypoints, std::list<Error>* errors_list, ErrorFlag* error_flag);	//TO MAKE
 		~Contour();
-		double GetZPlane(bool *valid);
-		
+		double GetZPlane(bool *valid) const;
+		void PrintContour() const;
 };
 
 

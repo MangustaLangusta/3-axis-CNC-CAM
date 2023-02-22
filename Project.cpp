@@ -14,8 +14,17 @@ void Project::AssignCompositeFacetBody(CompositeFacetBody* new_composite_facet_b
 	composite_facet_body = new_composite_facet_body;
 }
 		
-CompositeFacetBody* Project::GetAssignedCompositeFacetBody(){
+CompositeFacetBody* Project::GetAssignedCompositeFacetBody() const{
 	return composite_facet_body;
+}
+
+void Project::AssignContoursAggregator (ContoursAggregator* new_contours_aggregator){
+	assert(new_contours_aggregator != NULL);
+	contours_aggregator = new_contours_aggregator;
+}
+
+ContoursAggregator* Project::GetAssignedContoursAggregator() const{
+	return contours_aggregator;
 }
 
 void Project::SetProjectName(std::string new_project_name){

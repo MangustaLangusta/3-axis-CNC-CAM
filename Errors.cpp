@@ -11,6 +11,7 @@ const std::map<ErrorCode, std::string> Errors::error_codes_string_assignments = 
 	{0x5004, "ERROR_FACET_BODY_UNABLE_TO_CREATE"},
 	{0x5005, "ERROR_FACET_BODY_VALIDITY_CHECK_NOT_PASSED"},
 	{0x5006, "ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS"},
+	{0x5007, "ERROR_CONTOUR_NOT_VALID"},
 	{0xA000, "GENERAL_FATAL_ERROR"}
 };
 
@@ -34,7 +35,19 @@ ErrorFlag::ErrorFlag(){
 
 ErrorFlag::~ErrorFlag(){}
 
-ErrorFlag::ClearFlags(){
+void ErrorFlag::RiseError(){
+	error_flag = true;
+}
+
+bool ErrorFlag::HaveErrors() const{
+	return (fatal_error_flag || error_flag);
+}
+
+bool ErrorFlag::HaveWarnings() const{
+	return warning_flag;
+}
+
+void ErrorFlag::ClearFlags(){
 	warning_flag = false;
 	error_flag = false;
 	fatal_error_flag = false;

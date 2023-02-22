@@ -244,12 +244,13 @@ void TaskProcessInputFile::Execute(){
 
 void TaskSplitCompositeFacetBodyToContours::Execute(){
 	std::list<Error> errors_list;
-	bool errors_flag;
+	ErrorFlag error_flag;
 	std::vector<Plane3D> split_planes;
 	std::pair<double, double> boundaries;
 	std::vector<std::list<Point3D>> raw_contours;
 	CompositeFacetBody* composite_body;
 	Project *project;
+	ContoursAggregator* contours_aggregator;
 	
 	project = assigned_task_manager->GetAssignedProject();
 	assert(project != NULL);
@@ -263,15 +264,37 @@ void TaskSplitCompositeFacetBodyToContours::Execute(){
 		boundaries = std::make_pair(split_settings.z_max, split_settings.z_min);
 	split_planes = MathOperations::CreateZPlanesArray(boundaries, split_settings.spacing);
 	
-	raw_contours = composite_body->SplitByZPlanes(split_planes, &errors_list, &errors_flag);
-	if(errors_flag){
+	raw_contours = composite_body->SplitByZPlanes(split_planes, &errors_list, &error_flag);
+	std::cout<<"size = "<<raw_contours.size()<<std::endl;
+		//handling errors during split to raw contours
+	if(error_flag.HaveErrors()){
 		for(auto &it : errors_list){
 			ErrorMessage("", it);
 		}
+		Message("Split task cancelled");
+		return;
 	}
 	else {
 		Message("Facet body splitted by z contours");
 	}
+	
+	//ContoursAggregator(const std::vector<std::list<Point3D>> source_contours, std::list<Error> *errors_list, ErrorFlag *error_flag)
+	contours_aggregator = new ContoursAggregator(raw_contours, &errors_list, &error_flag);
+
+		//handling errors during creation of contours aggregator
+	if(error_flag.HaveErrors()){
+		for(auto &it : errors_list){
+			ErrorMessage("", it);
+		}
+		Message("Split task cancelled");
+		delete contours_aggregator;
+		return;
+	}
+	else {
+		Message("Contours aggregator created");
+	}
+	
+	project->AssignContoursAggregator(contours_aggregator);
 	
 	
 	return;

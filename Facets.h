@@ -89,14 +89,14 @@ class CompositeFacetBody{
 		bool MakeFacetPointsFromTriangles(const std::vector<Triangle3D> &triangles, std::map<Point3D, FacetPoint*> &result_map);
 		bool MakeFacetsFromTriangles(const std::vector<Triangle3D> &triangles, std::set<Facet*> &result_facets_vector);
 		bool GroupConnectedFacetsTogether(std::set<Facet*> source_facets, std::vector<std::set<Facet*>> &result_groups);
-		std::vector<std::list<Point3D>> SplitByZPlane(const Plane3D z_plane, std::list<Error> *errors_list, bool *error_flag);
+		std::vector<std::list<Point3D>> SplitByZPlane(const Plane3D z_plane, std::list<Error> *errors_list, ErrorFlag *error_flag);
 	public:
 		CompositeFacetBody(const std::vector<Triangle3D> triangles, std::list<Error> *errors_list, bool *error_flag);	//if have errors, flag error = true; 
 		~CompositeFacetBody();
 		void Shift(MathVector3D shift_vector);
 		void Rotate(Matrix3D turn_matrix);
 		std::pair<double, double> GetZExtremums() const;
-		std::vector<std::list<Point3D>> SplitByZPlanes(const std::vector<Plane3D> split_planes, std::list<Error> *errors_list, bool *error_flag);
+		std::vector<std::list<Point3D>> SplitByZPlanes(const std::vector<Plane3D> split_planes, std::list<Error> *errors_list, ErrorFlag *error_flag);
 		void PrintCompositeBody() const;
 };
 

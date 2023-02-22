@@ -288,6 +288,9 @@ bool FacetBody::SplitByZPlane(const Plane3D z_plane, std::vector<std::list<Point
 			first_facet = facet_base;
 			if(!current_waypoints.empty()){
 				result_contours->push_back(current_waypoints);
+				std::cout<<"printing current wayponts"<<std::endl;
+				for(auto &iit : current_waypoints)
+					Print(iit);
 				current_waypoints.clear();
 			}
 		}
@@ -301,7 +304,7 @@ bool FacetBody::SplitByZPlane(const Plane3D z_plane, std::vector<std::list<Point
 				break;				
 			}
 			if(two_cross_points.find(neighbour) != two_cross_points.end()){
-				if( Facets::IntersectionFacetsAndZPlane(facet_base, neighbour, z_coord, &cross_point) ){;
+				if( Facets::IntersectionFacetsAndZPlane(facet_base, neighbour, z_coord, &cross_point) ){
 					current_waypoints.push_back(cross_point);
 				}
 				else {
@@ -322,6 +325,10 @@ bool FacetBody::SplitByZPlane(const Plane3D z_plane, std::vector<std::list<Point
 					return false;
 				}
 			}
+			else{
+				assert(false);
+				return false;
+			}
 			facet_base = NULL;
 		}
 		if(two_cross_points.find(previous_facet_base) != two_cross_points.end()){
@@ -331,6 +338,13 @@ bool FacetBody::SplitByZPlane(const Plane3D z_plane, std::vector<std::list<Point
 			one_cross_point.erase(one_cross_point.find(previous_facet_base));
 		}
 	}	
+	if(!current_waypoints.empty()){
+		result_contours->push_back(current_waypoints);
+		std::cout<<"printing current wayponts"<<std::endl;
+		for(auto &iit : current_waypoints)
+			Print(iit);
+		current_waypoints.clear();
+	}
 	/*		
 	While set "One cross point" is not empty
 		If Facet_base is not defined (NULL):
@@ -535,17 +549,17 @@ bool CompositeFacetBody::GroupConnectedFacetsTogether(std::set<Facet*> source_fa
 	return true;
 }
 
-std::vector<std::list<Point3D>> CompositeFacetBody::SplitByZPlane(const Plane3D z_plane, std::list<Error> *errors_list, bool *error_flag){
+std::vector<std::list<Point3D>> CompositeFacetBody::SplitByZPlane(const Plane3D z_plane, std::list<Error> *errors_list, ErrorFlag *error_flag){
 	std::vector<std::list<Point3D>> result, intermediate_results;
-	*error_flag = false;
 	for(auto &it_bodies : facet_bodies){
 		intermediate_results.clear();
 		if( it_bodies.SplitByZPlane(z_plane, &intermediate_results) ){
+			//!!!!!!!!!!!!!!!!!!!!!
 			for(auto &it : intermediate_results)
 				result.push_back(it);
 		}
 		else {
-			*error_flag = true;
+			error_flag->RiseError();
 			errors_list->push_back(ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS);
 			return result;
 		}			
@@ -577,17 +591,17 @@ std::pair<double, double> CompositeFacetBody::GetZExtremums() const {
 
 std::vector<std::list<Point3D>> CompositeFacetBody::SplitByZPlanes(	const std::vector<Plane3D> split_planes, 
 																																		std::list<Error> *errors_list, 
-																																		bool *error_flag ) {
+																																		ErrorFlag *error_flag ) {
 	
 	std::vector<std::list<Point3D>> result, intermediate_results;
 	
 	assert(error_flag != NULL);
 	assert(errors_list != NULL);
-	*error_flag = false;
 	errors_list->clear();
 	for(auto &it_planes : split_planes){
 		intermediate_results = SplitByZPlane(it_planes, errors_list, error_flag);
-		if(!*error_flag){
+		if(!error_flag->HaveErrors()){
+			std::cout<<"intermediate size = "<<intermediate_results.size()<<std::endl;
 			for(auto &it : intermediate_results)
 				result.push_back(it);
 		}

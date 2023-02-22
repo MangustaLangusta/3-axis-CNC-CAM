@@ -12,6 +12,7 @@
 #include "Facets.h"
 #include "Utility.h"
 #include "BasicStructs.h"
+#include "Contours.h"
 
 
 /*
@@ -29,6 +30,7 @@ class TaskManager;
 class UserInterface;
 class ConsoleUserInterface;
 class Project;
+class ContoursAggregator;
 
 /*
 /////////////////////////////////////////
