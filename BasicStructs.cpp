@@ -27,14 +27,21 @@ MathVector3D::MathVector3D(const Point3D &root, const Point3D &top){
 }
 
 void MathVector3D::Normalize(){
-	double module;
+	double module = Module();
 	double x = vector_top.x;
 	double y = vector_top.y;
 	double z = vector_top.z;
-	module = sqrt(x*x + y*y + z*z);
+	assert(module != 0);
 	vector_top.x = x / module;
 	vector_top.y = y / module;
 	vector_top.z = z / module;
+}
+
+double MathVector3D::Module() const{
+	double x = vector_top.x;
+	double y = vector_top.y;
+	double z = vector_top.z;
+	return sqrt(x*x + y*y + z*z);
 }
 
 MathVector3D Triangle3D::GetNormal() const{
@@ -154,4 +161,16 @@ int MathOperations::Gauss(){
 	for( i = 1; i <= n; i++)
 		cout << "x[" << i << "]=" << x[i] << " " << endl;
 	return 0;
+}
+
+double MathOperations::AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b){
+	double cosine;
+	double numerator;
+	double denominator;
+	numerator = MathOperations::VectorMultiplication(vec_a, vec_b);
+	denominator = vec_a.Module() * vec_b.Module();
+	if(denominator == 0)
+		return 0;
+	cosine = numerator / denominator;
+	return acos(cosine);	
 }

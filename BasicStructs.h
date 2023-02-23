@@ -27,6 +27,7 @@ struct MathVector3D{
 	MathVector3D(){};
 	MathVector3D(const Point3D &root, const Point3D &top);
 	void Normalize();
+	double Module() const;
 };
 
 struct Line3D{
@@ -59,6 +60,7 @@ namespace MathOperations{
 	double Interpolate(const double x1, const double x2, const double ratio);
 	bool IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point);
 	int Gauss();
+	double AngleBetweenVectors(MathVector3D vec_a, MathVector3D vec_b);
 };
 
 enum Validity {NOT_VALID, VALID};

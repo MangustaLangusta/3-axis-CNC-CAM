@@ -166,6 +166,30 @@ std::vector<FacetPoint*> Facet::GetPoints() const{
 	return result_vector;
 }
 
+bool Facet::IsSuitsForContour(const double &z_plane) const {
+	std::pair<double, double> z_extremums;
+		//z_extremums.first chould be z_min,   z_extremums.second should be z_max
+	z_extremums = GetZExtremums();
+		//if facet fully lays in z_plane, also not suits 
+	if( (z_plane >= z_extremums.first) && (z_plane <= z_extremums.second) && (z_extremums.first != z_extremums.second) )
+		return true;
+	return false;
+}
+
+Facet* Facet::GetNextFacetForContour(const double &z_plane) const {
+	/*
+		Waypoints order in contour: cut (empty) area always from the right side if pass waypoints in forward direction
+																solid (body) area always left side (watching from the top)
+		Other words, contour direction through facet body surface is anti-clockwise if to see from top
+	*/
+	
+}
+
+Point3D Facet::GetNextContourPoint(const double &z_plane) const {
+	
+}
+
+
 FacetBody::FacetBody(std::set<Facet*> body_facets){
 	facets = body_facets;
 	if(CheckIntegrity())
@@ -212,6 +236,56 @@ std::pair<double, double> FacetBody::GetZExtremums() const{
 		z_max = facet_extremums.second > z_max ? facet_extremums.second : z_max;
 	}
 	return std::make_pair(z_min, z_max);
+}
+
+bool FacetBody::SplitByZPlane(const double &z_plane, std::vector<std::list<Point3D>> *result_contours) const{
+	bool facet_body_suits_for_contour;
+	bool contour_not_finished;
+	Facet* current_facet;
+	std::set<Facet*> used_facets;
+	std::list<Point3D> current_contour;
+	
+		//Each cycle corresponds to one contour. One FacetBody may have more then one contour
+	while(used_facets.size() != facets.size()){
+		
+			//Go through all facets, which are not checked yet.
+		facet_body_suits_for_contour = false;
+		for(auto &it : facets){
+			if(used_facets.find(it) != used_facets.end())
+				continue;
+				//Not forget to put all checktd facets in set to avoid checking them for next time
+			used_facets.insert(it);
+				//If one of them suits for contour (crosses z_plane), use this as fist facet in contour
+			if(it->IsSuitsForContour(&z_plane)){
+				current_facet = it;
+				facet_body_suits_for_contour = true;
+				break;
+			}
+		}
+		
+			//if not found suitable not checked facet, break cycle - all possible contours found
+		if(!facet_body_suits_for_contour)
+			break;
+		
+			//Add waypoints to contour one by one until loop is finished
+		contour_not_finished = true;
+		while(contour_not_finished){
+			current_contour.push_back(current_facet->GetNextContourPoint(z_plane));
+			used_facets.insert(current_facet);
+			current_facet = current_facet->GetNextFacetForContour(z_plane);
+				//should not be open loops at all
+			if(current_facet == NULL)
+				return false;
+				//when next facet already checked, it means that contour is closed.
+			if(used_facets.find(current_facet) != used_facets.end())
+				contour_not_finished = false;
+		}
+			
+			//contour is closed, add to contours vector
+		result_contours->push_back(current_contour);
+	}
+	
+	return true;
 }
 
 bool FacetBody::SplitByZPlane(const Plane3D z_plane, std::vector<std::list<Point3D>> *result_contours){

@@ -65,6 +65,10 @@ class Facet{
 		void PrintFacet() const;
 		std::pair<double, double> GetZExtremums() const;
 		int AmountOfIntersectionsWithZPlane(const double z_plane) const;
+		bool IsSuitsForConotour(const double &z_plane) const;
+		Facet* GetNextFacetForContour(const double &z_plane) const;
+		Point3D GetNextContourPoint(const double &z_plane) const;
+	
 };
 
 
@@ -80,6 +84,7 @@ class FacetBody{
 		void PrintBody() const;
 		std::pair<double, double> GetZExtremums() const;
 		bool SplitByZPlane(const Plane3D z_plane, std::vector<std::list<Point3D>> *result_contours);		
+		bool FacetBody::SplitByZPlane(const double z_plane, std::vector<std::list<Point3D>> *result_conoturs) const;
 };
 
 class CompositeFacetBody{
