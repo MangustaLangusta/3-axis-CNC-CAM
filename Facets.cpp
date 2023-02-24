@@ -55,6 +55,10 @@ void FacetPoint::AddParentFacet(Facet* parent_facet_to_add) { parent_facets.inse
 
 std::set<Facet*> FacetPoint::GetParentFacets() const { return parent_facets; };
 
+bool FacetPoint::IsParent(const &Facet* parent_candidate) const {
+	return (parent_facets.find(parent_candidate) != parent_facets.end());
+}
+
 void FacetPoint::PrintFacetPoint() const {
 	std::cout<<"facet point addr: "<<this<<" coords: ";
 	Print(coordinates);
@@ -171,9 +175,7 @@ bool Facet::IsSuitsForContour(const double &z_plane) const {
 		//z_extremums.first chould be z_min,   z_extremums.second should be z_max
 	z_extremums = GetZExtremums();
 		//if facet fully lays in z_plane, also not suits 
-	if( (z_plane >= z_extremums.first) && (z_plane <= z_extremums.second) && (z_extremums.first != z_extremums.second) )
-		return true;
-	return false;
+	return( (z_plane >= z_extremums.first) && (z_plane <= z_extremums.second) && (z_extremums.first != z_extremums.second) );
 }
 
 Facet* Facet::GetNextFacetForContour(const double &z_plane) const {
@@ -182,6 +184,38 @@ Facet* Facet::GetNextFacetForContour(const double &z_plane) const {
 																solid (body) area always left side (watching from the top)
 		Other words, contour direction through facet body surface is anti-clockwise if to see from top
 	*/
+	const int SUITABLE_NEIGHBOUR_A = 0;
+	const int SUITABLE_NEIGHBOUR_B = 1;
+	
+	std::vector<Facet*> suitable_neighbours;
+	FacetPoint* common_points[2];
+	
+	for(auto &it : GetNeighbours()){
+		if(it->IsSuitsForContour(z_plane))
+			suitable_neighbours.push_back(it);
+	}
+	assert(suitable_neighbours.size() == 2);
+	
+	for(auto &it : GetPoints()){
+		if(it->IsParent(suitable_neighbours[SUITABLE_NEIGHBOUR_A]) && it->IsParent(suitable_neighbours[SUITABLE_NEIGHBOUR_B]))
+			continue;
+		if(it->IsParent(suitable_neighbours[SUITABLE_NEIGHBOUR_A]){
+			common_points[SUITABLE_NEIGHBOUR_A] = it;
+			continue;
+		}
+		if(it->IsParent(suitable_neighbours[SUITABLE_NEIGHBOUR_B]){
+			common_points[SUITABLE_NEIGHBOUR_B] = it;
+			continue;
+		}
+		assert(false);
+	}
+	
+	MathVector3D direct_vector(common_points[SUITABLE_NEIGHBOUR_A], common_points[SUITABLE_NEIGHBOUR_B]);
+	MathVector3D reverse_vector(common_points[SUITABLE_NEIGHBOUR_B], common_points[SUITABLE_NEIGHBOUR_A]);
+	
+	MathVector3D vector_mult_result = MathOperations::VectorMultiplication(normal, direct_vector);
+	assert(vector_mult_result.GetZ() != 0);
+	if(vector_mult_result.GetZ() > 0)
 	
 }
 

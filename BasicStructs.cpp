@@ -44,6 +44,10 @@ double MathVector3D::Module() const{
 	return sqrt(x*x + y*y + z*z);
 }
 
+double MathVector3D::GetZ() const{
+	return vector_top.z;
+}
+
 MathVector3D Triangle3D::GetNormal() const{
 	MathVector3D vec_a(vertex[0], vertex[1]);
 	MathVector3D vec_b(vertex[0], vertex[2]);

@@ -28,6 +28,7 @@ struct MathVector3D{
 	MathVector3D(const Point3D &root, const Point3D &top);
 	void Normalize();
 	double Module() const;
+	double GetZ() const;
 };
 
 struct Line3D{

@@ -41,6 +41,7 @@ class FacetPoint{
 		~FacetPoint();
 		void AddParentFacet(Facet* parent_facet_to_add);
 		std::set<Facet*> GetParentFacets() const;
+		bool IsParent(const &Facet* parent_candidate) const;
 		const Point3D GetCoordinates() const;
 		const double GetX() const;
 		const double GetY() const;
