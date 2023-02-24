@@ -20,6 +20,7 @@ struct Point3D{
 	double z;
 	friend bool operator< (const Point3D &a, const Point3D &b);
 	friend bool operator== (const Point3D &a, const Point3D &b);
+	friend bool operator!= (const Point3D &a, const Point3D &b);
 };
 
 struct MathVector3D{
@@ -61,7 +62,7 @@ namespace MathOperations{
 	double Interpolate(const double x1, const double x2, const double ratio);
 	bool IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point);
 	int Gauss();
-	double AngleBetweenVectors(MathVector3D vec_a, MathVector3D vec_b);
+	//double AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b);
 };
 
 enum Validity {NOT_VALID, VALID};

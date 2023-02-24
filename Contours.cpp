@@ -27,7 +27,6 @@ double Contour::GetZPlane(bool *valid) const{
 		}
 		it++;
 	}
-	std::cout<<"all in one plane"<<std::endl;
 	*valid = true;
 	return first_z;
 }
@@ -95,7 +94,7 @@ ContoursAggregator::ContoursAggregator(const std::vector<std::list<Point3D>> sou
 	}
 	
 	for(auto &it_map : raw_contours){
-		std::cout<<"trying to pring contour"<<std::endl;
+		std::cout<<"trying to print contour"<<std::endl;
 		for(auto &it_set : it_map.second)
 			it_set->PrintContour();
 	}

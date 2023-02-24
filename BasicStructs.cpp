@@ -10,6 +10,10 @@ bool operator< (const Point3D &a, const Point3D &b){
 	);
 }
 
+bool operator!= (const Point3D &a, const Point3D &b) {
+	return ( !(a == b) );
+}
+
 Line3D::Line3D(){}
 
 Line3D::Line3D (const Point3D &new_a, const Point3D &new_b){
@@ -167,6 +171,7 @@ int MathOperations::Gauss(){
 	return 0;
 }
 
+/*
 double MathOperations::AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b){
 	double cosine;
 	double numerator;
@@ -178,3 +183,4 @@ double MathOperations::AngleBetweenVectors(const MathVector3D &vec_a, const Math
 	cosine = numerator / denominator;
 	return acos(cosine);	
 }
+*/
