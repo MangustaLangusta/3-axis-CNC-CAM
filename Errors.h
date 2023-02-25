@@ -22,6 +22,7 @@
 #define ERROR_FACET_BODY_VALIDITY_CHECK_NOT_PASSED		0x5005
 #define ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS	0x5006
 #define ERROR_CONTOUR_NOT_VALID												0x5007
+#define ERROR_WORK_FIELD_NOT_VALID										0x5008
 /****************************************/
 /*			FATAL ERRORS										*/
 #define GENERAL_FATAL_ERROR									0xA000
@@ -60,13 +61,21 @@ class Error{
 
 class ErrorsLog{
 	private:
-		std::list<Error> errors;
+		ErrorFlag error_flag;
+		std::list<Error> errors_list;
+		std::list<Error> warnings_list;
 	public:
 		ErrorsLog();
 		~ErrorsLog();
-		bool HaveErrors();
+		void AddError(const ErrorCode &new_error);
+		void AddWarning(const ErrorCode &new_warning);
+		bool HaveErrors() const;
+		bool HaveWarnings() const;
 		std::list<Error> GetErrors() const;
+		std::list<Error> GetWarnings() const;
 		void Clear();
+
 };
+
 
 #endif

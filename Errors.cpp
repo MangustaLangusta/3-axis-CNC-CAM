@@ -12,6 +12,7 @@ const std::map<ErrorCode, std::string> Errors::error_codes_string_assignments = 
 	{0x5005, "ERROR_FACET_BODY_VALIDITY_CHECK_NOT_PASSED"},
 	{0x5006, "ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS"},
 	{0x5007, "ERROR_CONTOUR_NOT_VALID"},
+	{0x5008, "ERROR_WORK_FIELD_NOT_VALID"},
 	{0xA000, "GENERAL_FATAL_ERROR"}
 };
 
@@ -69,13 +70,39 @@ ErrorsLog::ErrorsLog(){}
 
 ErrorsLog::~ErrorsLog(){}
 
-bool ErrorsLog::HaveErrors(){
-	return !errors.empty();
-}
-std::list<Error> ErrorsLog::GetErrors() const{
-	return errors;
+void ErrorsLog::AddError(const ErrorCode &new_error){
+		//not protected from adding warning instead of error
+	errors_list.emplace_back(new_error);
+	if(Errors::IsFatal(new_error))
+		error_flag.fatal_error_flag = true;
+	else
+		error_flag.error_flag = true;
 }
 
-void ErrorsLog::Clear(){
-	errors.clear();
+void ErrorsLog::AddWarning(const ErrorCode &new_warning){
+		//not protected form adding error instead of warning
+	warnings_list.emplace_back(new_warning);
+	error_flag.warning_flag = true;
+}
+
+bool ErrorsLog::HaveErrors() const {
+	return (error_flag.error_flag || error_flag.fatal_error_flag);
+}
+
+bool ErrorsLog::HaveWarnings() const {
+	return error_flag.warning_flag;
+}
+
+std::list<Error> ErrorsLog::GetErrors() const {
+	return errors_list;
+}
+
+std::list<Error> ErrorsLog::GetWarnings() const {
+	return warnings_list;
+}
+
+void ErrorsLog::Clear() {
+	errors_list.clear();
+	warnings_list.clear();
+	error_flag.ClearFlags();
 }

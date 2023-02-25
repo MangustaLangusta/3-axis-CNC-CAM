@@ -265,7 +265,6 @@ void TaskSplitCompositeFacetBodyToContours::Execute(){
 	split_planes = MathOperations::CreateZPlanesArray(boundaries, split_settings.spacing);
 	
 	raw_contours = composite_body->SplitByZPlanes(split_planes, &errors_list, &error_flag);
-	std::cout<<"size = "<<raw_contours.size()<<std::endl;
 		//handling errors during split to raw contours
 	if(error_flag.HaveErrors()){
 		for(auto &it : errors_list){
@@ -295,7 +294,6 @@ void TaskSplitCompositeFacetBodyToContours::Execute(){
 	}
 	
 	project->AssignContoursAggregator(contours_aggregator);
-	
 	
 	return;
 }

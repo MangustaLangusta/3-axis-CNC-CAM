@@ -568,7 +568,6 @@ std::vector<std::list<Point3D>> CompositeFacetBody::SplitByZPlanes(	const std::v
 	for(auto &it_planes : split_planes){
 		intermediate_results = SplitByZPlane(it_planes, errors_list, error_flag);
 		if(!error_flag->HaveErrors()){
-			std::cout<<"intermediate size = "<<intermediate_results.size()<<std::endl;
 			for(auto &it : intermediate_results)
 				result.push_back(it);
 		}

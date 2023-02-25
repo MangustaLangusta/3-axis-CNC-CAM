@@ -77,6 +77,12 @@ MathVector3D MathOperations::VectorMultiplication(const MathVector3D &vec_a, con
 	return result_vector;
 }
 
+double MathOperations::Dot(const MathVector3D &vec_a, const MathVector3D &vec_b){
+	Point3D point_a = vec_a.vector_top;
+	Point3D point_b = vec_b.vector_top;
+	return point_a.x * point_b.x + point_a.y * point_b.y + point_a.z * point_b.z;
+}
+
 std::vector<Plane3D> MathOperations::CreateZPlanesArray(std::pair<double, double> z_extremums, double interval){
 	const MathVector3D new_normal(Point3D{0,0,0}, Point3D{0,0,1});
 	Point3D new_plane_point;
@@ -171,16 +177,15 @@ int MathOperations::Gauss(){
 	return 0;
 }
 
-/*
+
 double MathOperations::AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b){
 	double cosine;
 	double numerator;
 	double denominator;
-	numerator = MathOperations::VectorMultiplication(vec_a, vec_b);
+	numerator = MathOperations::Dot(vec_a, vec_b);
 	denominator = vec_a.Module() * vec_b.Module();
 	if(denominator == 0)
 		return 0;
 	cosine = numerator / denominator;
 	return acos(cosine);	
 }
-*/
