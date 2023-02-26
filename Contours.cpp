@@ -71,6 +71,14 @@ double Contour::GetZPlane() const {
 	return z_plane;
 }
 
+std::list<Point3D> Contour::GetWaypoints(ErrorsLog *errors_log) const {
+	if(!IsValid()){
+		errors_log->AddError(ERROR_CONTOUR_NOT_VALID);
+		return std::list<Point3D> {};
+	}
+	return waypoints;
+
+
 bool Contour::IsValid() const {
 	return valid;
 }
@@ -101,6 +109,36 @@ WorkField::~WorkField(){
 
 bool WorkField::IsValid() const {
 	return valid;
+}
+
+bool WorkField::GenerateFieldContour(const double &z_plane, ErrorsLog *errors_log, Contour *result_contour) const {
+	std::list<Point3D> new_waypoints;
+	Point3D point_to_correct;
+	ErrorsLog local_errors_log;
+	
+	if(!IsValid()){
+		errors_log->AddError(ERROR_WORK_FIELD_NOT_VALID);
+		return false;
+	}
+	
+	if( (z_plane < z_extremums.first) || (z_plane > z_extremums.second) )
+		errors_log->AddWarning(WARNING_REQUESTED_PLANE_OUTSIDE_OF_WORK_FIELD_LIMITS);
+	
+	for(auto &it : base_contour->GetWaypoints(&local_errors_log){
+		point_to_correct = it;
+		point_to_correct.z = z_plane;
+		new_waypoints.push_back(point_to_correct);
+	}
+	
+	if(local_errors_log->HaveErrors(){
+		valid = false;
+		errors_log->AddError(ERROR_WORK_FIELD_NOT_VALID);
+		return false;
+	}
+	
+	delete result_contour;
+	result_contour = new Contour(new_waypoints, &local_errors_log);
+	
 }
 
 ContoursAggregator::ContoursAggregator(const std::vector<std::list<Point3D>> source_contours, std::list<Error> *errors_list, ErrorFlag *error_flag){
@@ -160,6 +198,8 @@ ContoursAggregator::ContoursAggregator(const std::vector<std::list<Point3D>> sou
 		return;
 	}
 	
+	workfield = NULL;
+	
 	
 	for(auto &it_map : raw_contours){
 		std::cout<<"trying to print contour"<<std::endl;
@@ -196,11 +236,14 @@ void ContoursAggregator::AssignWorkField(WorkField *new_workfield, ErrorsLog *er
 }
 
 std::vector<Contour*> ContoursAggregator::GetPreparedContours(const double &spacing,  ErrorsLog *errors_log){
+	assert(workfield != NULL);
 		//this loop passes all z_planes
 	for(auto &it_z_plane : raw_contours){
+			//first equidistant and merge field conotur
+			EquidistantAndMerge(
 			//this loop passes all raw contours which belong to same z plane
 		for(auto &it_contour_set : it_z_plane.second){
-			
+			EquidistantAndMerge(it_contour_set, spacing);
 		}
 		
 	}

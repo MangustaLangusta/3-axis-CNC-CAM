@@ -23,6 +23,7 @@ class Contour{
 		Contour(const std::list<Point3D> new_waypoints, std::list<Error>* errors_list, ErrorFlag* error_flag);	//TO MAKE
 		~Contour();
 		double GetZPlane() const;
+		std::list<Point3D> GetWaypoints() const;
 		
 		bool IsValid() const;
 		void PrintContour() const;
@@ -37,6 +38,7 @@ class WorkField{
 		WorkField(const std::pair<double, double> &new_z_extremums, Contour* new_base_contour, ErrorsLog *errors_log);
 		~WorkField();
 		bool IsValid() const;
+		bool GenerateFieldContour(const double &z_plane, ErrorsLog *errors_log, Contour *result_contour) const;
 };
 
 class ContoursAggregator{

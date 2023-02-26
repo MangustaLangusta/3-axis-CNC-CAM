@@ -9,9 +9,9 @@
 #define NORMAL															0x0000
 /****************************************/
 /*			WARNINGS												*/
-#define GENERAL_WARNING		 										0x0001
-#define WARNING_CONTOUR_NOT_IN_SINGLE_PLANE		0x0002
-
+#define GENERAL_WARNING		 																			0x0001
+#define WARNING_CONTOUR_NOT_IN_SINGLE_PLANE											0x0002
+#define WARNING_REQUESTED_PLANE_OUTSIDE_OF_WORK_FIELD_LIMITS		0x0003
 /****************************************/
 /*			ERRORS													*/
 #define GENERAL_ERROR																	0x5000
@@ -23,6 +23,7 @@
 #define ERROR_UNABLE_TO_SPLIT_FACET_BODY_TO_CONTOURS	0x5006
 #define ERROR_CONTOUR_NOT_VALID												0x5007
 #define ERROR_WORK_FIELD_NOT_VALID										0x5008
+
 /****************************************/
 /*			FATAL ERRORS										*/
 #define GENERAL_FATAL_ERROR									0xA000
