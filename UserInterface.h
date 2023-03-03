@@ -7,6 +7,7 @@
 #include "TaskManager.h"
 #include "Project.h"
 #include "Errors.h"
+#include "Contours.h"
 
 class TaskManager;
 class UserInterfaceMessage;

@@ -36,7 +36,7 @@ class ContoursAggregator;
 /////////////////////////////////////////
 */
 using Filename = std::string;
-using ProjectName = std::string;
+
 
 enum RequestCode {
 	REQUEST_NIL,
@@ -45,26 +45,30 @@ enum RequestCode {
 	REQUEST_MAKE_GCODE_FROM_FILE,
 	REQUEST_PROCESS_INPUT_FILE,
 	REQUEST_SPLIT_FACET_BODY_TO_CONTOURS,
+	REQUEST_PATH_PATTERNS_FROM_CONTOURS
 };
 
 class RequestData{
 	private:
 		RequestCode request_code;
 		Filename filename_data;
-		ProjectName project_name_data;
+		ProjectSettings project_settings;
 		SplitSettings split_settings;
+		PathSettings path_settings;
 	public:
 		RequestData();
 		~RequestData();
 		void AddRequestCode(const RequestCode new_request_code);
 		void AddFilename(const Filename new_filename);
-		void AddProjectName(const ProjectName new_project_name);
+		void AddProjectSettings(const ProjectSettings &new_project_settings);
 		void AddSplitSettings(const SplitSettings new_split_settings);
+		void AddPathSettings(const PathSettings &new_path_settings);
 		bool IsValid();
 		RequestCode GetRequestCode() const;
 		Filename GetFilename() const;
-		ProjectName GetProjectName() const;
+		ProjectSettings GetProjectSettings() const;
 		SplitSettings GetSplitSettings() const;
+		PathSettings GetPathSettings() const;
 };
 
 class Task{
@@ -81,11 +85,20 @@ class Task{
 
 class TaskCreateNewProject : public Task{
 	private:
-		std::string project_name;
+		ProjectSettings project_settings;
 	public:
-		TaskCreateNewProject(TaskManager* new_assigned_task_manager, std::string new_project_name);
+		TaskCreateNewProject(TaskManager* new_assigned_task_manager, const ProjectSettings &new_project_settings);
 		~TaskCreateNewProject();
 		void Execute();	
+};
+
+class TaskUpdateProject : public Task{
+	private:
+		ProjectSettings project_settings;
+	public:
+		TaskUpdateProject(TaskManager* new_assigned_task_manager, const ProjectSettings &new_project_settings);
+		~TaskUpdateProject();
+		void Execute();
 };
 
 class TaskEmergencyStop : public Task{
@@ -110,6 +123,15 @@ class TaskSplitCompositeFacetBodyToContours : public Task{
 	public:
 		TaskSplitCompositeFacetBodyToContours(TaskManager* new_assigned_task_manager, const SplitSettings new_split_settings);
 		~TaskSplitCompositeFacetBodyToContours();
+		void Execute();
+};
+
+class TaskPathPatternsFromContours : public Task{
+	private:
+		PathSettings path_settings;
+	public:
+		TaskPathPatternsFromContours(TaskManager* new_assigned_task_manager, const PathSettings &new_paths_settings);
+		~TaskPathPatternsFromContours();
 		void Execute();
 };
 

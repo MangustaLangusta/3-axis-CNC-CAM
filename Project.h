@@ -7,16 +7,30 @@
 #include "Contours.h"
 #include "Errors.h"
 
+using ProjectName = std::string;
+
+struct ProjectSettings{
+	ProjectName new_project_name;
+	WorkField* new_workfield;
+	
+	ProjectSettings();
+	~ProjectSettings();
+};
+
 class Project{
 	private:
-		std::string project_name;
+		ProjectName project_name;
 		std::string filename;
+		WorkField* workfield;	
 		CompositeFacetBody* composite_facet_body;
 		ContoursAggregator* contours_aggregator;
 	public:
 		Project();
-		Project(std::string new_project_name);
+		Project(const ProjectSettings &settings);
 		~Project();
+		void Update(const ProjectSettings &settings);
+		bool AssignWorkField(WorkField *new_workfield);
+		WorkField* GetAssignedWorkField();
 		void AssignCompositeFacetBody(CompositeFacetBody* new_composite_facet_body);
 		CompositeFacetBody* GetAssignedCompositeFacetBody() const;
 		void AssignContoursAggregator (ContoursAggregator* new_contours_aggregator);

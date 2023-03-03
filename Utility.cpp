@@ -41,6 +41,26 @@ bool SplitSettings::IsWholeZRange(){
 	return whole_z_range;
 }
 
+PathSettings::PathSettings(){
+	valid = false;
+}
+
+PathSettings::PathSettings(const double &new_horizontal_spacing) {
+	horizontal_spacing = new_horizontal_spacing;
+	valid = true;
+}
+
+PathSettings::~PathSettings() {}
+
+void PathSettings::Initialize(const double &new_horizontal_spacing) {
+	horizontal_spacing = new_horizontal_spacing;
+	valid = true;
+}
+
+bool PathSettings::IsValid() const {
+	return valid;
+}
+
 void Print(const Point3D &p){	
 	std::cout<<p.x<<" "<<p.y<<" "<<p.z<<std::endl; 
 }

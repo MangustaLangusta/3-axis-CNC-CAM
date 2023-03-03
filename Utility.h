@@ -20,6 +20,18 @@ struct SplitSettings{
 	~SplitSettings();
 };
 
+struct PathSettings{
+	double horizontal_spacing;
+	bool valid;
+	
+	PathSettings();
+	PathSettings(const double &new_horizontal_spacing);
+	~PathSettings();	
+	
+	void Initialize(const double &new_horizontal_spacing);
+	bool IsValid() const;
+};
+
 void Print(const Point3D &p);
 
 

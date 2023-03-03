@@ -1,10 +1,9 @@
 #include "Contours.h"
 
-Contour::Contour(const std::list<Point3D> new_waypoints, std::list<Error>* errors_list, ErrorFlag* error_flag){
+Contour::Contour(const std::list<Point3D> &new_waypoints, ErrorsLog* errors_log){
 	if(new_waypoints.size() == 0){
 		valid = false;
-		error_flag->RiseError();
-		errors_list->push_back(ERROR_CONTOUR_NOT_VALID);
+		errors_log->AddError(ERROR_CONTOUR_NOT_VALID);
 		return;
 	}
 		//check that all waypoints are in same plane
@@ -12,6 +11,7 @@ Contour::Contour(const std::list<Point3D> new_waypoints, std::list<Error>* error
 	for(auto &it : new_waypoints){
 		if(it.z != z_plane){
 			valid = false;
+			errors_log->AddError(ERROR_CONTOUR_NOT_VALID);
 			return;
 		}
 	}
@@ -20,6 +20,10 @@ Contour::Contour(const std::list<Point3D> new_waypoints, std::list<Error>* error
 	waypoints = new_waypoints;
 		//remove inner waypoints from stright lines
 	RemoveExessivePoints();
+}
+
+Contour(const std::list<Point3D> &new_waypoints, std::set<Contour*> *contours_aparted, ErrorsLog* errors_log){
+	std::cout<<"Inside constructor for self-crossing check of contours"<<std::endl;
 }
 
 Contour::~Contour(){}
@@ -77,7 +81,7 @@ std::list<Point3D> Contour::GetWaypoints(ErrorsLog *errors_log) const {
 		return std::list<Point3D> {};
 	}
 	return waypoints;
-
+}
 
 bool Contour::IsValid() const {
 	return valid;
@@ -92,7 +96,7 @@ WorkField::WorkField(const std::pair<double, double> &new_z_extremums, Contour* 
 	double z_min = std::min(new_z_extremums.first, new_z_extremums.second);
 	double z_max = std::max(new_z_extremums.first, new_z_extremums.second);
 	
-	if( (z_min == z_max) || (new_base_contour->IsValid()) ){
+	if( (z_min == z_max) || (!new_base_contour->IsValid()) ){
 		errors_log->AddError(ERROR_WORK_FIELD_NOT_VALID);
 		valid = false;
 		return;
@@ -111,7 +115,7 @@ bool WorkField::IsValid() const {
 	return valid;
 }
 
-bool WorkField::GenerateFieldContour(const double &z_plane, ErrorsLog *errors_log, Contour *result_contour) const {
+bool WorkField::GenerateFieldContour(const double &z_plane, ErrorsLog *errors_log, Contour *result_contour){
 	std::list<Point3D> new_waypoints;
 	Point3D point_to_correct;
 	ErrorsLog local_errors_log;
@@ -124,13 +128,13 @@ bool WorkField::GenerateFieldContour(const double &z_plane, ErrorsLog *errors_lo
 	if( (z_plane < z_extremums.first) || (z_plane > z_extremums.second) )
 		errors_log->AddWarning(WARNING_REQUESTED_PLANE_OUTSIDE_OF_WORK_FIELD_LIMITS);
 	
-	for(auto &it : base_contour->GetWaypoints(&local_errors_log){
+	for(auto &it : base_contour->GetWaypoints(&local_errors_log)){
 		point_to_correct = it;
 		point_to_correct.z = z_plane;
 		new_waypoints.push_back(point_to_correct);
 	}
 	
-	if(local_errors_log->HaveErrors(){
+	if(local_errors_log.HaveErrors()){
 		valid = false;
 		errors_log->AddError(ERROR_WORK_FIELD_NOT_VALID);
 		return false;
@@ -139,26 +143,31 @@ bool WorkField::GenerateFieldContour(const double &z_plane, ErrorsLog *errors_lo
 	delete result_contour;
 	result_contour = new Contour(new_waypoints, &local_errors_log);
 	
+	if(local_errors_log.HaveErrors()){
+		delete result_contour;
+		errors_log->AddError(ERROR_WORK_FIELD_NOT_VALID);
+		return false;
+	}
+	
+	std::cout<<"field contour genarated"<<std::endl;
+	//result_contour->PrintContour();
+	return true;
 }
 
-ContoursAggregator::ContoursAggregator(const std::vector<std::list<Point3D>> source_contours, std::list<Error> *errors_list, ErrorFlag *error_flag){
+ContoursAggregator::ContoursAggregator(const std::vector<std::list<Point3D>> source_contours, ErrorsLog *errors_log){
 	Contour *new_contour;
-	std::list<Error> local_errors;
-	ErrorFlag local_error_flag;
+	ErrorsLog local_errors_log;
 	bool abort = false;
 	double z_plane_new_contour;
 	std::map<double, std::set<Contour*>>::iterator it_raw_contours;
 	
 	for(auto &it : source_contours){
-		new_contour = new Contour(it, &local_errors, &local_error_flag);
+		new_contour = new Contour(it, &local_errors_log);
 		
 			//errors handling
-		if(local_error_flag.fatal_error_flag || local_error_flag.error_flag){
+		if(local_errors_log.HaveErrors()){
 			delete new_contour;
-			for(auto &it_error : local_errors)
-				errors_list->push_back(it_error);
-			error_flag->fatal_error_flag = local_error_flag.fatal_error_flag;
-			error_flag->error_flag = local_error_flag.error_flag;
+			errors_log->CopyErrors(&local_errors_log);
 			abort = true;
 			if (abort)
 				std::cout<<"Aborted during contour creation"<<std::endl;
@@ -175,8 +184,7 @@ ContoursAggregator::ContoursAggregator(const std::vector<std::list<Point3D>> sou
 				//if not valid, make error and abort:
 			abort = true;
 			std::cout<<"Aborted when putting in raw_contours"<<std::endl;
-			error_flag->error_flag = true;
-			errors_list->push_back(ERROR_CONTOUR_NOT_VALID);
+			errors_log->AddError(ERROR_CONTOUR_NOT_VALID);
 			break;
 		}
 				//everything fine, add new contour to map "raw_contours"
@@ -226,26 +234,141 @@ ContoursAggregator::~ContoursAggregator(){
 	delete workfield;
 }
 
-void ContoursAggregator::AssignWorkField(WorkField *new_workfield, ErrorsLog *errors_log){
-	if(new_workfield->IsValid())
+std::list<Point3D> ContoursAggregator::GenerateEquidistantContourFragment(const Point3D prev_wpt, const Point3D current_wpt, const Point3D next_wpt){
+	std::list<Point3D> result_list;
+	
+	return result_list;
+}
+
+bool ContoursAggregator::Equidistant(const Contour* source_contour, const double &spacing, Conotur* equidistant_contour){
+	std::cout<<"Inside equidistant funсtion"<<std::endl;
+	
+	std::list<Point3D> new_wpts;
+	std::list<Point3D> source_wpts;
+	std::list<Point3D> equidistant_fragment;
+	ErrorsLog local_errors_log;
+	
+	source_wpts = source_contour->GetWaypoints(&local_errors_log);
+	
+		//case when single-point contour to be equidistanted
+	if(source_wpts.size() == 1)
+		return EquidistantSinglePointContour(*source_wpts.begin(), spacing, equidistant_contour);
+	
+	assert(source_wpts.size() > 2);
+	
+	for(auto current_wpt = source_wpts.begin(); current_wpt != source_wpts.end(); current_wpt++){
+			//setup next and previous waypoint
+		auto next_wpt = current_wpt;
+		auto prev_wpt = current_wpt;
+		next_wpt++;
+		if(next_wpt == source_wpts.end())
+			next_wpt = source_wpts.begin();
+		if(current_wpt == source_wpts.begin())
+			prev_wpt = source_wpts.end();
+		prev_wpt--;
+		
+			//make equidistant fragment ovaer current waypoint (using also prev and next wpts)
+		equidistant_fragment = GenerateEquidistantContourFragment(*prev_wpt, *current_wpt, *next_wpt);
+		
+			//insert each new fragment in the end of new contour waypoints list
+		new_wpts.insert(new_wpts.end(), equidistant_fragment.begin(), equidistant_fragment.end();
+	}
+	
+		//try to make contour from new waypoints
+	std::cout<<"Need to make check for self-crossing for contours"<<std::endl;
+	equidistant_contour = new Contour(new_waypoints, &local_errors_log);
+		
+		//errors handling
+	if(local_errors_log.HaveErrors()){
+			delete equidistant_contour;
+			return false;
+		}
+	return true;
+}
+
+bool EquidistantSinglePointContour(const Point3D &single_wpt, const double &spacing, Contour* equidistant_contour){
+	std::cout<<"Equidistant contour for single point function is not yet done"<<std::endl;
+	return false;
+}
+
+bool ContoursAggregator::AssignWorkField(WorkField *new_workfield){
+	if(new_workfield->IsValid()){
 		workfield = new_workfield;
+		return true;
+	}
 	else{
 		workfield = NULL;
-		errors_log->AddError(ERROR_WORK_FIELD_NOT_VALID);
+		return false;
 	}
 }
 
 std::vector<Contour*> ContoursAggregator::GetPreparedContours(const double &spacing,  ErrorsLog *errors_log){
 	assert(workfield != NULL);
+	
+	std::cout<<"inside GetPreparedContours function"<<std::endl;
+	
+	std::vector<Contour*> result_contours;
+	std::map<double, std::set<Contour*>> all_active_contours;				//contours on outer layers, to be check for crossing with new contours
+	std::set<Contour*> current_z_active_contours;										// 
+	Contour *field_contour = NULL;
+	ErrorsLog local_errors_log;
+	bool abort = false;
+	
 		//this loop passes all z_planes
 	for(auto &it_z_plane : raw_contours){
+			//for each new plane need to create field contour
+			if(!workfield->GenerateFieldContour(it_z_plane.first, &local_errors_log, field_contour)){
+				errors_log->CopyErrors(&local_errors_log);
+				abort = true;
+				break;
+			}
+			assert(field_contour != NULL);
+			
+			//field conotur made successfully
 			//first equidistant and merge field conotur
-			EquidistantAndMerge(
+			if(!EquidistantAndMerge(field_contour, spacing, &current_z_active_contours)){
+				abort = true;
+				break;
+			}
+			
 			//this loop passes all raw contours which belong to same z plane
 		for(auto &it_contour_set : it_z_plane.second){
-			EquidistantAndMerge(it_contour_set, spacing);
+			if(!EquidistantAndMerge(it_contour_set, spacing)){
+				abort = true;
+				break;
+			}
 		}
 		
+		if(abort)
+			break;
 	}
 	
+	if(abort){
+		std::cout<<"aborted"<<std::endl;
+		errors_log->AddError(GENERAL_ERROR);
+		for(auto &it : result_contours)
+			delete it;
+		delete field_contour;
+	}
+	
+	return result_contours;
+}
+
+WorkField* CreateTestWorkField(){
+	ErrorsLog local_errors_log;
+	WorkField* new_workfield;
+	Contour* new_base_contour;
+	
+	new_base_contour = new Contour(TEST_WORKFIELD_WAYPOINTS, &local_errors_log);
+	
+	assert(!local_errors_log.HaveErrors());
+	assert(new_base_contour->IsValid());
+	
+	new_workfield = new WorkField(TEST_WORKFIELD_Z_EXTREMUMS, new_base_contour, &local_errors_log);
+	
+	
+	assert(!local_errors_log.HaveErrors());
+	assert(new_workfield->IsValid());
+
+	return new_workfield;
 }

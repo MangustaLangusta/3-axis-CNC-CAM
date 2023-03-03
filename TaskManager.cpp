@@ -14,24 +14,24 @@ void RequestData::AddFilename(const Filename new_filename){
 	filename_data = new_filename;
 }
 
-void RequestData::AddProjectName(const ProjectName new_project_name){
-	project_name_data = new_project_name;
+void RequestData::AddProjectSettings(const ProjectSettings &new_project_settings){
+	project_settings = new_project_settings;
 }
 
 void RequestData::AddSplitSettings(const SplitSettings new_split_settings){
 	split_settings = new_split_settings;
 }
 
+void RequestData::AddPathSettings(const PathSettings &new_path_settings){
+	path_settings =new_path_settings;
+}
+
 bool RequestData::IsValid(){
 	switch(request_code){
 		//Cases where no additional info required:
 		case REQUEST_EMERGENCY_STOP:
-			return true;
-		//Cases wher only project name required:
 		case REQUEST_CREATE_NEW_PROJECT:
-			if(project_name_data != "")
-				return true;
-			return false;
+			return true;
 		//Cases where filename required:
 		case REQUEST_MAKE_GCODE_FROM_FILE:
 		case REQUEST_PROCESS_INPUT_FILE:
@@ -41,6 +41,9 @@ bool RequestData::IsValid(){
 		//Case where correct split settings required
 		case REQUEST_SPLIT_FACET_BODY_TO_CONTOURS:
 			return split_settings.IsValid();
+		//Case where correct path settings required
+		case REQUEST_PATH_PATTERNS_FROM_CONTOURS:
+			return path_settings.IsValid();
 		//All wrong names (including NIL code):
 		default:
 			return false;
@@ -55,12 +58,16 @@ Filename RequestData::GetFilename() const{
 	return filename_data;
 }
 
-ProjectName RequestData::GetProjectName() const{
-	return project_name_data;
+ProjectSettings RequestData::GetProjectSettings() const{
+	return project_settings;
 }
 
 SplitSettings RequestData::GetSplitSettings() const{
 	return split_settings;
+}
+
+PathSettings RequestData::GetPathSettings() const {
+	return path_settings;
 }
 
 Task::Task(TaskManager* new_assigned_task_manager){
@@ -77,11 +84,17 @@ void Task::ErrorMessage(const std::string text, const Error error){
 	assigned_task_manager->ErrorMessageToUserInterface(text, error);
 }
 
-TaskCreateNewProject::TaskCreateNewProject(TaskManager* new_assigned_task_manager, std::string new_project_name) : Task(new_assigned_task_manager){
-	project_name = new_project_name;
+TaskCreateNewProject::TaskCreateNewProject(TaskManager* new_assigned_task_manager, const ProjectSettings &new_project_settings) : Task(new_assigned_task_manager){
+	project_settings = new_project_settings;
 }
 
 TaskCreateNewProject::~TaskCreateNewProject(){}
+
+TaskUpdateProject::TaskUpdateProject(TaskManager* new_assigned_task_manager, const ProjectSettings &new_project_settings) : Task(new_assigned_task_manager){
+	project_settings = new_project_settings;
+}
+
+TaskUpdateProject::~TaskUpdateProject() {}
 
 TaskEmergencyStop::TaskEmergencyStop(TaskManager* new_assigned_task_manager) : Task(new_assigned_task_manager){}
 
@@ -99,6 +112,13 @@ TaskSplitCompositeFacetBodyToContours::TaskSplitCompositeFacetBodyToContours(Tas
 }
 		
 TaskSplitCompositeFacetBodyToContours::~TaskSplitCompositeFacetBodyToContours(){}
+
+TaskPathPatternsFromContours::TaskPathPatternsFromContours(TaskManager* new_assigned_task_manager, 
+																																						const PathSettings &new_path_settings) : Task(new_assigned_task_manager) {
+	path_settings = new_path_settings;
+}
+
+TaskPathPatternsFromContours::~TaskPathPatternsFromContours(){}
 
 void TaskManager::CommandLineArgumentsToTasks(int argc, char *argv[]){
 	for(int i = 1; i < argc; i++){
@@ -186,7 +206,7 @@ void TaskManager::Request(const RequestData request_data){
 		case REQUEST_EMERGENCY_STOP:
 			break;
 		case REQUEST_CREATE_NEW_PROJECT:
-			tasks.emplace_back(new TaskCreateNewProject(this, request_data.GetProjectName()));
+			tasks.emplace_back(new TaskCreateNewProject(this, request_data.GetProjectSettings()));
 			break;
 		case REQUEST_MAKE_GCODE_FROM_FILE:
 			break;
@@ -196,6 +216,9 @@ void TaskManager::Request(const RequestData request_data){
 		case REQUEST_SPLIT_FACET_BODY_TO_CONTOURS:
 			tasks.emplace_back( new TaskSplitCompositeFacetBodyToContours(this, request_data.GetSplitSettings()) );
 			break;
+		case REQUEST_PATH_PATTERNS_FROM_CONTOURS:
+			tasks.emplace_back( new TaskPathPatternsFromContours(this, request_data.GetPathSettings()) );
+			break;
 		default:
 			assert(false);
 	}
@@ -204,9 +227,13 @@ void TaskManager::Request(const RequestData request_data){
 
 void TaskCreateNewProject::Execute(){
 	Project* new_project = NULL;
-	new_project = new Project(project_name);
+	new_project = new Project(project_settings);
 	assigned_task_manager->AssignProject(new_project);
 	Message("New project assigned to TaskManager");
+}
+
+void TaskUpdateProject::Execute(){
+	assigned_task_manager->GetAssignedProject()->Update(project_settings);
 }
 
 void TaskEmergencyStop::Execute(){
@@ -245,6 +272,7 @@ void TaskProcessInputFile::Execute(){
 void TaskSplitCompositeFacetBodyToContours::Execute(){
 	std::list<Error> errors_list;
 	ErrorFlag error_flag;
+	ErrorsLog local_errors_log;
 	std::vector<Plane3D> split_planes;
 	std::pair<double, double> boundaries;
 	std::vector<std::list<Point3D>> raw_contours;
@@ -278,11 +306,11 @@ void TaskSplitCompositeFacetBodyToContours::Execute(){
 	}
 	
 	//ContoursAggregator(const std::vector<std::list<Point3D>> source_contours, std::list<Error> *errors_list, ErrorFlag *error_flag)
-	contours_aggregator = new ContoursAggregator(raw_contours, &errors_list, &error_flag);
+	contours_aggregator = new ContoursAggregator(raw_contours, &local_errors_log);
 
 		//handling errors during creation of contours aggregator
-	if(error_flag.HaveErrors()){
-		for(auto &it : errors_list){
+	if(local_errors_log.HaveErrors()){
+		for(auto &it : local_errors_log.GetErrors()){
 			ErrorMessage("", it);
 		}
 		Message("Split task cancelled");
@@ -294,6 +322,35 @@ void TaskSplitCompositeFacetBodyToContours::Execute(){
 	}
 	
 	project->AssignContoursAggregator(contours_aggregator);
+}
+
+void TaskPathPatternsFromContours::Execute(){
+	ErrorsLog local_errors_log;
+	Project* project;
+	ContoursAggregator* contours_aggregator;
+	std::vector<Contour*> prepared_contours;
 	
-	return;
+	Message("Executing task path patterns from contours.");	
+	
+	project = assigned_task_manager->GetAssignedProject();
+	assert(project != NULL);
+	
+	contours_aggregator = project->GetAssignedContoursAggregator();
+	assert(contours_aggregator != NULL);
+	
+	contours_aggregator->AssignWorkField(project->GetAssignedWorkField());
+	prepared_contours = contours_aggregator->GetPreparedContours(path_settings.horizontal_spacing, &local_errors_log);
+	
+		//errors handling
+	if(local_errors_log.HaveErrors()){
+		for(auto &it : prepared_contours)
+			delete it;
+		for(auto &err_it : local_errors_log.GetErrors())
+			ErrorMessage("", err_it);
+		return;
+	}
+	
+Message("Prepared contours ready");
+
+	
 }

@@ -102,6 +102,11 @@ std::list<Error> ErrorsLog::GetWarnings() const {
 	return warnings_list;
 }
 
+void ErrorsLog::CopyErrors(ErrorsLog* source_log){
+	for(auto &it : source_log->GetErrors())
+		AddError(it.code);
+}
+
 void ErrorsLog::Clear() {
 	errors_list.clear();
 	warnings_list.clear();

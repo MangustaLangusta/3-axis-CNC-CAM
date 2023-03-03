@@ -74,6 +74,7 @@ class ErrorsLog{
 		bool HaveWarnings() const;
 		std::list<Error> GetErrors() const;
 		std::list<Error> GetWarnings() const;
+		void CopyErrors(ErrorsLog* source_log);
 		void Clear();
 
 };

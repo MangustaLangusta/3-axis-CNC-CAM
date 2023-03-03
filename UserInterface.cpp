@@ -1,6 +1,7 @@
 #include "UserInterface.h"
 
 #define TEST_SPACING_TO_SPLIT 25
+#define TEST_HORIZONTAL_SPACING 10
 
 
 UserInterface::UserInterface(TaskManager* new_task_manager_assigned){
@@ -105,12 +106,21 @@ void ConsoleUserInterface::RunMainMenuState(){
 
 void ConsoleUserInterface::RunQuickStartState(){
 	std::cout<<"QuickStart"<<std::endl;
+		
+	RequestData project_request, process_file_request, split_request, path_patterns_request;
+	
 		//making new project
-	RequestData project_request, process_file_request, split_request;
+	ProjectSettings new_project_settings;
+				//here supposed to be dialog with user about project name.
+				//
+				//
+	new_project_settings.new_project_name = "Test project";
+	new_project_settings.new_workfield = CreateTestWorkField();
 	project_request.AddRequestCode(REQUEST_CREATE_NEW_PROJECT);
-	project_request.AddProjectName(ProjectName("TestProject"));
+	project_request.AddProjectSettings(new_project_settings);
 	assert(project_request.IsValid());
 	task_manager_assigned->Request(project_request);
+	
 		//choosing filename
 	process_file_request.AddFilename(Filename("test.STL"));
 	process_file_request.AddRequestCode(REQUEST_PROCESS_INPUT_FILE);
@@ -122,6 +132,13 @@ void ConsoleUserInterface::RunQuickStartState(){
 	split_request.AddSplitSettings(test_split_settings);
 	assert(split_request.IsValid());
 	task_manager_assigned->Request(split_request);
+		//making path patterns request
+	PathSettings test_path_settings(TEST_HORIZONTAL_SPACING);
+	path_patterns_request.AddRequestCode(REQUEST_PATH_PATTERNS_FROM_CONTOURS);
+	path_patterns_request.AddPathSettings(test_path_settings);
+	assert(path_patterns_request.IsValid());
+	task_manager_assigned->Request(path_patterns_request);
+		
 	state = MainMenu;
 }
 
