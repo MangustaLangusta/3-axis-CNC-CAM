@@ -538,9 +538,11 @@ void CompositeFacetBody::Shift(MathVector3D shift_vector){
 	std::cout<<"Some code for shifting"<<std::endl;
 }
 
+/*
 void CompositeFacetBody::Rotate(Matrix3D turn_matrix){
 	std::cout<<"Some code for rotation"<<std::endl;
 }
+*/
 
 std::pair<double, double> CompositeFacetBody::GetZExtremums() const {
 	if(facet_bodies.empty())

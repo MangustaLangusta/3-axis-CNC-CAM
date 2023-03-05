@@ -41,7 +41,7 @@ class WorkField{
 		WorkField(const std::pair<double, double> &new_z_extremums, Contour* new_base_contour, ErrorsLog *errors_log);
 		~WorkField();
 		bool IsValid() const;
-		bool GenerateFieldContour(const double &z_plane, ErrorsLog *errors_log, Contour *result_contour);
+		bool GenerateFieldContour(const double &z_plane, ErrorsLog *errors_log, Contour **result_contour);
 };
 
 class ContoursAggregator{

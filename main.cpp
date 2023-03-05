@@ -9,8 +9,8 @@
 #include <algorithm>
 #include <map>
 
-/*    NEW CLASSES ARE BELOW   */
-/*
+/*    local files   */
+
 #include "BasicStructs.h"
 #include "Utility.h"
 #include "RawSTL.h"
@@ -20,7 +20,7 @@
 #include "UserInterface.h"
 #include "TaskManager.h"
 #include "Project.h"
-*/
+
 
 
 #define DEFAULT_INPUT_FILE_NAME "test.stl"
@@ -30,61 +30,18 @@
 using namespace std;
 
 
-void sysout(double **a, double *y, int n)
-{
-  for (int i = 0; i < n; i++) 
-  {
-    for (int j = 0; j < n; j++) 
-    {
-      cout << a[i][j] << "*x" << j;
-      if (j < n - 1)
-        cout << " + ";
-    }
-    cout << " = " << y[i] << endl;
-  }
-  return;
-}
-
-int main() 
-{
-  double **a, *y, *x;
-  int n;
-  system("cls");
-  cout << "Now many equasions?: ";
-  cin >> n;
-  a = new double*[n];
-  y = new double[n];
-  for (int i = 0; i < n; i++) 
-  {
-    a[i] = new double[n];
-    for (int j = 0; j < n; j++) 
-    {
-      cout << "a[" << i << "][" << j << "]= ";
-      cin >> a[i][j];
-    }
-  }
-  for (int i = 0; i < n; i++) 
-  {
-    cout << "y[" << i << "]= ";
-    cin >> y[i];
-  }
-  sysout(a, y, n);
-  x = gauss(a, y, n);
-  for (int i = 0; i < n; i++) 
-    cout << "x[" << i << "]=" << x[i] << endl;
-  cin.get(); cin.get();
-  return 0;
-}
-
-/*
-
 int main(int argc, char *argv[]){
-	TaskManager main_task_manager(argc, argv);
-	main_task_manager.StartTasksExecution();
-
-
+	
+	Line3D test_line({0, 2, 5}, {1, 3, 5});
+	test_line.GetCrossingPlanesEquasionMembers().Print();
 	
 	/*
+	TaskManager main_task_manager(argc, argv);
+	main_task_manager.StartTasksExecution();
+*/
+
+	
+	
 	system("pause");
 	system("cls");
 	return 0;

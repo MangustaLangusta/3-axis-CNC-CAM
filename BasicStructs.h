@@ -13,6 +13,8 @@ struct Line3D;
 struct Triangle3D;
 struct Plane3D;
 struct Matrix3D;
+struct Line3DCanonicalEquasionMembers;
+struct Line3DCrossingPlanesEquasionMembers;
 
 struct Point3D{
 	double x;
@@ -29,6 +31,8 @@ struct MathVector3D{
 	MathVector3D(const Point3D &root, const Point3D &top);
 	void Normalize();
 	double Module() const;
+	double GetX() const;
+	double GetY() const;
 	double GetZ() const;
 };
 
@@ -37,6 +41,36 @@ struct Line3D{
 	Point3D b;
 	Line3D();
 	Line3D(const Point3D &new_a, const Point3D &new_b);
+	MathVector3D GetDirectingVector() const;
+	Line3DCanonicalEquasionMembers GetCanonicalEquasionMembers() const;
+	Line3DCrossingPlanesEquasionMembers GetCrossingPlanesEquasionMembers() const;
+};
+
+	//canonical equasion: (x-x1) / a_x = (y-y1) / a_y = (z-z1) / a_z
+struct Line3DCanonicalEquasionMembers{
+	double x1;
+	double a_x;
+	double y1;
+	double a_y;
+	double z1;
+	double a_z;	
+};
+
+	//crossing planes equasion: / A1*x + B1*y + C1 * z + D1 = 0
+	//													\ A2*x + B2*y + C2 * z + D2 = 0
+struct Line3DCrossingPlanesEquasionMembers{
+	double A1;
+	double A2;
+	double B1;
+	double B2;
+	double C1;
+	double C2;
+	double D1;
+	double D2;
+	Line3DCrossingPlanesEquasionMembers();
+	~Line3DCrossingPlanesEquasionMembers();
+	std::vector<std::vector<double>> VectorForm() const;
+	void Print();
 };
 
 
@@ -51,10 +85,23 @@ struct Plane3D{
 	Plane3D(MathVector3D new_normal, Point3D new_point);
 };
 
-struct Matrix3D{
-	Point3D cols[3];
+class Matrix{
+	private:
+		std::pair<int, int> size;
+		std::vector<std::vector<double>> elements; //cols->rows
+		std::pair<int, int> Size() const;
+		int Rank() const;
+	public:
+		Matrix(const std::vector<std::vector<double>> &new_elements);
+		~Matrix();
+		std::vector<std::vector<double>> GetMinor(const int &target_col, const int &target_row) const;
+		double Determinant() const;
+		bool Gauss(Point3D* intersection_point);
+		bool IsSquare() const;
+		int ColsAmount() const;
+		int RowsAmount() const;
+		void Print() const;
 };
-
 
 namespace MathOperations{
 	MathVector3D VectorMultiplication(const MathVector3D &vec_a, const MathVector3D &vec_b);
@@ -63,7 +110,8 @@ namespace MathOperations{
 	double Interpolate(const double x1, const double x2, const double ratio);
 	bool IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point);
 	bool LimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point);
-	int Gauss();
+	bool UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point);
+	
 	double AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b);
 };
 
