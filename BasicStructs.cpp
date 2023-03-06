@@ -87,10 +87,16 @@ Line3DCrossingPlanesEquasionMembers Line3D::GetCrossingPlanesEquasionMembers() c
 		
 		assert(coeff_matrix.Determinant() == 0);
 		
+		std::set<int> row_set, cols_set;
+	
 		for(int row = 0; row < 3; row++){
+			row_set = {0, 1, 2};
+			row_set.erase(row_set.find(row));
 			for(int col = 0; col < 3; col++){
-				Matrix minor(coeff_matrix.GetMinor(row, col));
-				if(minor.Determinant() != 0){
+				cols_set = {0, 1, 2};
+				cols_set.erase(cols_set.find(col));
+				double minor = coeff_matrix.Minor(row_set, cols_set);
+				if(minor != 0){
 					row_to_remove = row;
 					break;
 				}
@@ -214,14 +220,85 @@ Matrix::Matrix(const std::vector<std::vector<double>> &new_elements){
 
 Matrix::~Matrix() {}
 
+bool Matrix::FindNonZeroWrappingMinor(std::set<int> *row_set, std::set<int> *col_set) const {
+		//return false if no non-zero wrapping minors found
+	
+		//only square matrix
+	assert(row_set->size() == col_set->size());
+	
+	int wrapping_matrix_order = row_set->size() + 1;	
+	
+	if( (ColsAmount() < wrapping_matrix_order) || (RowsAmount() < wrapping_matrix_order) )
+		return false;
+	
+	double last_minor;
+	
+	std::set<int> new_row_set, new_col_set;
+	
+	for(int row = 0; row < RowsAmount(); row++){
+		
+		new_row_set = *row_set;
+		if(new_row_set.find(row) == new_row_set.end())
+			new_row_set.insert(row);
+		else 
+			continue;
+		
+		for(int col = 0; col < ColsAmount(); col++){
+		
+			new_col_set = *col_set;
+			if(new_col_set.find(col) == new_col_set.end())
+				new_col_set.insert(col);
+			else 
+				continue;
+			
+			last_minor = Minor(new_row_set, new_col_set);
+		
+			if(last_minor != 0){
+				*row_set = new_row_set;
+				*col_set = new_col_set;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 int Matrix::Rank() const {
-		//find rank of matrix
-	return 0;
+		//find rank of matrix using wrapping minors
+	
+	int rank = 0;
+	std::set<int> row_set, col_set;
+		
+		//find non-zero element
+	for(int row = 0; row < RowsAmount(); row++){
+		for(int col = 0; col < ColsAmount(); col++){
+			if(elements[row][col] != 0){
+				row_set = {row};
+				col_set = {col};
+				rank = 1;
+				break;
+			}
+		}
+		if(rank == 1)
+			break;
+	}
+	
+	if(rank == 0)
+		return rank;
+	
+	while(1){
+		if( FindNonZeroWrappingMinor(&row_set, &col_set) )
+			rank++;
+		else 
+			break;
+	}
+	
+	return rank;
 	
 }
 
-std::vector<std::vector<double>> Matrix::Minor(const std::set<int> &rows, const std::set<int> &cols) {
-	std::vector<std::vector<double>> result;
+double Matrix::Minor(const std::set<int> &rows, const std::set<int> &cols) const {
+	std::vector<std::vector<double>> minor_matrix;
 	std::vector<double> current_row;
 	
 		//minor should be a square matrix
@@ -238,31 +315,9 @@ std::vector<std::vector<double>> Matrix::Minor(const std::set<int> &rows, const 
 				continue;
 			current_row.push_back(elements[row][col]);
 		}
-		result.push_back(current_row);
+		minor_matrix.push_back(current_row);
 	}
-	
-	return result;
-}
-
-std::vector<std::vector<double>> Matrix::GetMinor(const int &target_row, const int &target_col) const {
-	assert(size.first == size.second);
-	assert(size.first > 2);
-	
-	std::vector<std::vector<double>> result;
-	std::vector<double> tmp_vec;
-	
-	for(int row = 0; row < elements.size(); row++){
-		if(row == target_row)
-			continue;
-		tmp_vec.clear();
-		for(int col = 0; col < elements.size(); col++){
-			if(col == target_col)
-				continue;
-			tmp_vec.push_back(elements[row][col]);
-		}
-		result.push_back(tmp_vec);
-	}	
-	return result;	
+	return Matrix(minor_matrix).Determinant();
 }
 
 double Matrix::Determinant() const {
@@ -277,14 +332,27 @@ double Matrix::Determinant() const {
 	
 	const int FIRST_ROW = 0;
 	double result = 0;
+	double minor;
 	int sign;
+	std::set<int> minor_rows;
+	std::set<int> minor_cols;
 	
+		//prepare rows for minor in advance
+	for(int i = 1; i < RowsAmount(); i++)
+		minor_rows.insert(i);
 	
-	
+		//main loop
 	for(int col = 0; col < size.first; col++){
 		sign = col % 2 ? -1 : 1;
-		Matrix minor(GetMinor(FIRST_ROW, col));
-		result += sign * elements[FIRST_ROW][col] * minor.Determinant(); 
+			//prepare cols for monor
+		minor_cols.clear();
+		for(int i = 0; i < ColsAmount(); i++){
+			if(i == col)
+				continue;
+			minor_cols.insert(i);
+		}
+		minor = this->Minor(minor_rows, minor_cols);
+		result += sign * elements[FIRST_ROW][col] * minor; 
 	}
 	return result;
 }
@@ -298,11 +366,11 @@ std::pair<int, int> Matrix::Size() const {
 }
 
 int Matrix::ColsAmount() const {
-	return size.first;
+	return size.second;
 }
 
 int Matrix::RowsAmount() const {
-	return size.second;
+	return size.first;
 }
 
 void Matrix::Print() const {

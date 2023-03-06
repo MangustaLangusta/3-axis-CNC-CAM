@@ -35,6 +35,11 @@ int main(int argc, char *argv[]){
 	Line3D test_line({0, 2, 5}, {1, 3, 5});
 	test_line.GetCrossingPlanesEquasionMembers().Print();
 	
+	Matrix test_matrix({	{0, 2, 2, 4},
+												{1, 2, 3, 7},
+												{-2, -4, -6, 3}	});
+	std::cout<<test_matrix.Rank()<<std::endl;
+	
 	/*
 	TaskManager main_task_manager(argc, argv);
 	main_task_manager.StartTasksExecution();

@@ -2,6 +2,7 @@
 #define BASIC_STRUCTS_H
 
 #include <vector>
+#include <set>
 #include <cmath>
 #include <iostream>
 #include <assert.h>
@@ -90,12 +91,14 @@ class Matrix{
 		std::pair<int, int> size;
 		std::vector<std::vector<double>> elements; //cols->rows
 		std::pair<int, int> Size() const;
-		int Rank() const;
+		bool FindNonZeroWrappingMinor(std::set<int> *row_set, std::set<int> *col_set) const;	//for rank determination
+		
 	public:
 		Matrix(const std::vector<std::vector<double>> &new_elements);
 		~Matrix();
-		std::vector<std::vector<double>> GetMinor(const int &target_col, const int &target_row) const;
+		double Minor(const std::set<int> &rows, const std::set<int> &cols) const;
 		double Determinant() const;
+		int Rank() const;
 		bool Gauss(Point3D* intersection_point);
 		bool IsSquare() const;
 		int ColsAmount() const;
@@ -110,8 +113,8 @@ namespace MathOperations{
 	double Interpolate(const double x1, const double x2, const double ratio);
 	bool IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point);
 	bool LimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point);
-	bool UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point);
-	
+	bool UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, const double &precision, Point3D* intersection_point);
+	int Gauss();
 	double AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b);
 };
 
