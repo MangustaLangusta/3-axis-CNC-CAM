@@ -6,7 +6,9 @@
 #include <cmath>
 #include <iostream>
 #include <assert.h>
+#include "Utility.h"
 
+#define CALCULATIONS_PRECISION 0.00001
 
 struct Point3D;
 struct MathVector3D;
@@ -45,6 +47,7 @@ struct Line3D{
 	MathVector3D GetDirectingVector() const;
 	Line3DCanonicalEquasionMembers GetCanonicalEquasionMembers() const;
 	Line3DCrossingPlanesEquasionMembers GetCrossingPlanesEquasionMembers() const;
+	double Length() const;
 };
 
 	//canonical equasion: (x-x1) / a_x = (y-y1) / a_y = (z-z1) / a_z
@@ -96,6 +99,7 @@ class Matrix{
 	public:
 		Matrix(const std::vector<std::vector<double>> &new_elements);
 		~Matrix();
+		std::vector<std::vector<double>> GetElements() const;
 		double Minor(const std::set<int> &rows, const std::set<int> &cols) const;
 		double Determinant() const;
 		int Rank() const;
@@ -113,9 +117,10 @@ namespace MathOperations{
 	double Interpolate(const double x1, const double x2, const double ratio);
 	bool IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point);
 	bool LimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point);
-	bool UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, const double &precision, Point3D* intersection_point);
-	int Gauss();
+	bool UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point);
+	bool Gauss(const Matrix input_matrix, Point3D &intersection);
 	double AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b);
+	double DistanceBetweenPoints(const Point3D &point_a, const Point3D &point_b);
 };
 
 enum Validity {NOT_VALID, VALID};

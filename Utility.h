@@ -4,6 +4,8 @@
 #include <iostream>
 #include "BasicStructs.h"
 
+struct Point3D;
+
 struct SplitSettings{
 	double z_min;
 	double z_max;

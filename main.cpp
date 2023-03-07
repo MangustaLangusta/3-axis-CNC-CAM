@@ -32,14 +32,23 @@ using namespace std;
 
 int main(int argc, char *argv[]){
 	
-	Line3D test_line({0, 2, 5}, {1, 3, 5});
-	test_line.GetCrossingPlanesEquasionMembers().Print();
+	Line3D test_line1({0, 2, 5}, {3, 5, 5});
+	Line3D test_line2({7, 2, 5}, {1, 5, 5});
+	Point3D intersection_point;
+	Matrix test_matrix({	{1, 2, -3, 4},
+												{2, -1, 0, -5},
+												{1, 0, -3, 0},
+												{3, -2, 2, 1} });
+												
+	if(MathOperations::LimitedIntersectionOfTwoLines(test_line1, test_line2, &intersection_point))	
+		Print(intersection_point);
+	else 
+		std::cout<<"not crossing"<<std::endl;
 	
-	Matrix test_matrix({	{0, 2, 2, 4},
-												{1, 2, 3, 7},
-												{-2, -4, -6, 3}	});
+	/*
+	
 	std::cout<<test_matrix.Rank()<<std::endl;
-	
+	*/
 	/*
 	TaskManager main_task_manager(argc, argv);
 	main_task_manager.StartTasksExecution();

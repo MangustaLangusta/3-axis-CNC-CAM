@@ -25,6 +25,10 @@ MathVector3D Line3D::GetDirectingVector() const{
 	return MathVector3D(a, b);
 }
 
+double Line3D::Length() const {
+	return GetDirectingVector().Module();
+}
+
 Line3DCanonicalEquasionMembers Line3D::GetCanonicalEquasionMembers() const{
 	Line3DCanonicalEquasionMembers result;
 	MathVector3D dir_vec = GetDirectingVector();
@@ -141,6 +145,9 @@ Line3DCrossingPlanesEquasionMembers Line3D::GetCrossingPlanesEquasionMembers() c
 			default:
 				assert(false);
 		}
+			//put free members (D1, D2) in the right side of equasion: change sign
+		result.D1 = -result.D1;
+		result.D2 = -result.D2;
 		return result;
 }
 
@@ -261,6 +268,10 @@ bool Matrix::FindNonZeroWrappingMinor(std::set<int> *row_set, std::set<int> *col
 		}
 	}
 	return false;
+}
+
+std::vector<std::vector<double>> Matrix::GetElements() const {
+	return elements;
 }
 
 int Matrix::Rank() const {
@@ -453,35 +464,100 @@ bool MathOperations::IntersectionOfLineAndZPlane(const Line3D line, const double
 	//true if two given lines intersect each other within their ends. false if no intersection, parallel or collinear
 bool MathOperations::LimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point){
 	
-	
-	
-		//determine directing vectors of 2 lines:
-	const MathVector3D dir_vec_a = line_a.GetDirectingVector();
-	const MathVector3D dir_vec_b = line_b.GetDirectingVector();
-	
-	
-	
+	if(MathOperations::UnlimitedIntersectionOfTwoLines(line_a, line_b, intersection_point)){
+		double dist;
+		dist = line_a.Length();
+		if( (Line3D(line_a.a, *intersection_point).Length() > dist) || (Line3D(line_a.b, *intersection_point).Length() > dist) )
+			return false;
+		dist = line_b.Length();
+		if( (Line3D(line_b.a, *intersection_point).Length() > dist) || (Line3D(line_b.b, *intersection_point).Length() > dist) )
+			return false;
+		return true;
+	}
 	return false;
 }
 
 	//true if two given lines intersect each other, even beyond their limits. False if no intersection, parallel or collinear
-bool MathOperations::UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, const double &precision, Point3D* intersection_point){
+bool MathOperations::UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point){
 	Line3DCrossingPlanesEquasionMembers line_a_equasion, line_b_equasion;
 	
 	line_a_equasion = line_a.GetCrossingPlanesEquasionMembers();
 	line_b_equasion = line_b.GetCrossingPlanesEquasionMembers();
-		
 	
+	Matrix base_matrix({	{line_a_equasion.A1, line_a_equasion.B1, line_a_equasion.C1},
+												{line_a_equasion.A2, line_a_equasion.B2, line_a_equasion.C2},
+												{line_b_equasion.A1, line_b_equasion.B1, line_b_equasion.C1},
+												{line_b_equasion.A2, line_b_equasion.B2, line_b_equasion.C2} });
 	
+	Matrix extended_matrix({	{line_a_equasion.A1, line_a_equasion.B1, line_a_equasion.C1, line_a_equasion.D1},
+														{line_a_equasion.A2, line_a_equasion.B2, line_a_equasion.C2, line_a_equasion.D2},
+														{line_b_equasion.A1, line_b_equasion.B1, line_b_equasion.C1, line_b_equasion.D1},
+														{line_b_equasion.A2, line_b_equasion.B2, line_b_equasion.C2, line_b_equasion.D2} });
 	
+	std::cout<<"ranks: "<<std::endl;
+	std::cout<<base_matrix.Rank()<<" "<<extended_matrix.Rank()<<std::endl;
 	
+	Point3D result;
+	
+	if(Gauss(extended_matrix, result)){
+		*intersection_point = result;
+		Print(result);
+		return true;
+	}
 	return false;
 }
 
 
 
-int MathOperations::Gauss(){
-	return 0;
+bool MathOperations::Gauss(const Matrix input_matrix, Point3D &intersection){
+		//
+	input_matrix.Print();
+	const double EPS = CALCULATIONS_PRECISION;	//precision	
+	std::vector<std::vector<double>> a = input_matrix.GetElements();
+	std::vector<double> ans;
+	int n = a.size();
+	int m = a[0].size() - 1;
+ 
+	std::vector<int> where (m, -1);
+	for (int col=0, row=0; col<m && row<n; ++col) {
+		int sel = row;
+		for (int i=row; i<n; ++i)
+			if (abs (a[i][col]) > abs (a[sel][col]))
+				sel = i;
+		if (abs (a[sel][col]) < EPS)
+			continue;
+		for (int i=col; i<=m; ++i)
+			std::swap (a[sel][i], a[row][i]);
+		where[col] = row;
+ 
+		for (int i=0; i<n; ++i)
+			if (i != row) {
+				double c = a[i][col] / a[row][col];
+				for (int j=col; j<=m; ++j)
+					a[i][j] -= a[row][j] * c;
+			}
+		++row;
+	}
+ 
+	ans.assign (m, 0);
+	for (int i=0; i<m; ++i)
+		if (where[i] != -1)
+			ans[i] = a[where[i]][m] / a[where[i]][i];
+	for (int i=0; i<n; ++i) {
+		double sum = 0;
+		for (int j=0; j<m; ++j)
+			sum += ans[j] * a[i][j];
+		if (abs (sum - a[i][m]) > EPS)
+			return false;
+	}
+ 
+	for (int i=0; i<m; ++i)
+		if (where[i] == -1)
+			return false;
+	
+	intersection = {ans[0], ans[1], ans[2]};
+	return true;
+
 }
 
 
@@ -495,4 +571,9 @@ double MathOperations::AngleBetweenVectors(const MathVector3D &vec_a, const Math
 		return 0;
 	cosine = numerator / denominator;
 	return acos(cosine);	
+}
+
+double MathOperations::DistanceBetweenPoints(const Point3D &point_a, const Point3D &point_b){
+	MathVector3D new_vector(point_a, point_b);
+	return new_vector.Module();
 }
