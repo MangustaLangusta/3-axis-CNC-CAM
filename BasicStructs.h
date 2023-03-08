@@ -92,7 +92,7 @@ struct Plane3D{
 class Matrix{
 	private:
 		std::pair<int, int> size;
-		std::vector<std::vector<double>> elements; //cols->rows
+		std::vector<std::vector<double>> elements; //rows->cols
 		std::pair<int, int> Size() const;
 		bool FindNonZeroWrappingMinor(std::set<int> *row_set, std::set<int> *col_set) const;	//for rank determination
 		
@@ -103,7 +103,6 @@ class Matrix{
 		double Minor(const std::set<int> &rows, const std::set<int> &cols) const;
 		double Determinant() const;
 		int Rank() const;
-		bool Gauss(Point3D* intersection_point);
 		bool IsSquare() const;
 		int ColsAmount() const;
 		int RowsAmount() const;
@@ -111,15 +110,20 @@ class Matrix{
 };
 
 namespace MathOperations{
+		//vector operations
 	MathVector3D VectorMultiplication(const MathVector3D &vec_a, const MathVector3D &vec_b);
 	double Dot(const MathVector3D &vec_a, const MathVector3D &vec_b);
+	double AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b);
+	//Planes
 	std::vector<Plane3D> CreateZPlanesArray(std::pair<double, double> boundaries, double spacing);	
+		//pure math
 	double Interpolate(const double x1, const double x2, const double ratio);
+		//intersections
 	bool IntersectionOfLineAndZPlane(const Line3D line, const double z_plane, Point3D* intersection_point);
 	bool LimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point);
 	bool UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const Line3D &line_b, Point3D* intersection_point);
 	bool Gauss(const Matrix input_matrix, Point3D &intersection);
-	double AngleBetweenVectors(const MathVector3D &vec_a, const MathVector3D &vec_b);
+		//Points
 	double DistanceBetweenPoints(const Point3D &point_a, const Point3D &point_b);
 };
 

@@ -152,7 +152,9 @@ void TaskManager::ProhibitTasksExecution(){
 	execution_permitted = false; 
 }
 
-void TaskManager::PermitTasksExecution(){ execution_permitted = true; }
+void TaskManager::PermitTasksExecution(){ 
+	execution_permitted = true; 
+}
 
 bool TaskManager::IsExecutionPermitted() const { 
 	return execution_permitted; 
@@ -350,7 +352,7 @@ void TaskPathPatternsFromContours::Execute(){
 		return;
 	}
 	
-Message("Prepared contours ready");
+	Message("Prepared contours ready");
 
 	
 }

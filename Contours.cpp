@@ -230,10 +230,11 @@ ContoursAggregator::~ContoursAggregator(){
 	delete workfield;
 }
 
-std::list<Point3D> ContoursAggregator::GenerateEquidistantContourFragment(const Point3D prev_wpt, const Point3D current_wpt, const Point3D next_wpt){
+std::list<Point3D> ContoursAggregator::GenerateEquidistantContourFragment(const Point3D &prev_wpt, const Point3D &current_wpt, const Point3D &next_wpt){
 	std::list<Point3D> result_list;
 	
 	//Make something
+	
 	
 	return result_list;
 }
@@ -243,7 +244,7 @@ bool ContoursAggregator::EquidistantSinglePointContour(const Point3D &single_wpt
 	return false;
 }
 
-bool ContoursAggregator::Equidistant(const Contour* source_contour, const double &spacing, Contour* equidistant_contour){
+bool ContoursAggregator::Equidistant(const Contour* source_contour, const double &spacing, Contour* new_equidistant_contour){
 	std::cout<<"Inside equidistant funсtion"<<std::endl;
 	
 	std::list<Point3D> new_wpts;
@@ -255,7 +256,7 @@ bool ContoursAggregator::Equidistant(const Contour* source_contour, const double
 	
 		//case when single-point contour to be equidistanted
 	if(source_wpts.size() == 1)
-		return EquidistantSinglePointContour(*source_wpts.begin(), spacing, equidistant_contour);
+		return EquidistantSinglePointContour(*source_wpts.begin(), spacing, new_equidistant_contour);
 	
 	assert(source_wpts.size() > 2);
 	
@@ -270,7 +271,7 @@ bool ContoursAggregator::Equidistant(const Contour* source_contour, const double
 			prev_wpt = source_wpts.end();
 		prev_wpt--;
 		
-			//make equidistant fragment ovaer current waypoint (using also prev and next wpts)
+			//make equidistant fragment over current waypoint (using also prev and next wpts)
 		equidistant_fragment = GenerateEquidistantContourFragment(*prev_wpt, *current_wpt, *next_wpt);
 		
 			//insert each new fragment in the end of new contour waypoints list
@@ -279,11 +280,11 @@ bool ContoursAggregator::Equidistant(const Contour* source_contour, const double
 	
 		//try to make contour from new waypoints
 	std::cout<<"Need to make check for self-crossing for contours"<<std::endl;
-	equidistant_contour = new Contour(new_wpts, &local_errors_log);
+	new_equidistant_contour = new Contour(new_wpts, &local_errors_log);
 		
 		//errors handling
 	if(local_errors_log.HaveErrors()){
-			delete equidistant_contour;
+			delete new_equidistant_contour;
 			return false;
 		}
 	return true;
@@ -307,8 +308,8 @@ std::vector<Contour*> ContoursAggregator::GetPreparedContours(const double &spac
 	std::cout<<"inside GetPreparedContours function"<<std::endl;
 	
 	std::vector<Contour*> result_contours;
-	std::map<double, std::set<Contour*>> all_active_contours;				//contours on outer layers, to be check for crossing with new contours
-	std::set<Contour*> current_z_active_contours;										// 
+	std::map<double, std::set<Contour*>> all_active_contours;				//contours on outer layers, mapped by z coordinate
+	std::set<Contour*> current_z_active_contours;										// to be check for crossing with new contours
 	Contour *field_contour = NULL;
 	ErrorsLog local_errors_log;
 	bool abort = false;
@@ -321,10 +322,10 @@ std::vector<Contour*> ContoursAggregator::GetPreparedContours(const double &spac
 				abort = true;
 				break;
 			}
-			std::cout<<field_contour<<std::endl;
+	
 			assert(field_contour != NULL);
 			
-			//field conotur made successfully
+			//field contour made successfully
 			//first equidistant and merge field conotur
 			/*
 			if(!EquidistantAndMerge(field_contour, spacing, &current_z_active_contours)){

@@ -53,10 +53,10 @@ class ContoursAggregator{
 		
 		//void MakeContoursPatern(const double &z_plane, ErrorsLog *errors_log);	//TO MAKE FUNCTION
 		
-		std::list<Point3D> GenerateEquidistantContourFragment(const Point3D prev_wpt, const Point3D current_wpt, const Point3D next_wpt);
+		std::list<Point3D> GenerateEquidistantContourFragment(const Point3D &prev_wpt, const Point3D &current_wpt, const Point3D &next_wpt);
 
 		
-		bool Equidistant(const Contour* source_contour, const double &spacing, Contour* equidistant_contour);
+		bool Equidistant(const Contour* source_contour, const double &spacing, Contour* new_equidistant_contour);
 		bool EquidistantSinglePointContour(const Point3D &single_wpt, const double &spacing, Contour* equidistant_contour);
 		//bool Merge(const Contour* contour_to_be_merged, std::set<Contour*> active_contours);
 		
