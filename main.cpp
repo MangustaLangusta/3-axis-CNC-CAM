@@ -38,9 +38,10 @@ int main(int argc, char *argv[]){
 
 
 	
-	
+	/*
 	system("pause");
 	system("cls");
+	*/
 	return 0;
 }
 
