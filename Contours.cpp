@@ -306,16 +306,20 @@ std::vector<Contour*> ContoursAggregator::GetPreparedContours(const double &spac
 	assert(workfield != NULL);
 	
 	std::cout<<"inside GetPreparedContours function"<<std::endl;
+
+	std::cout<<"MAKE FUNCTION FOR CHECKING THIN AREAS IN RAW CONTOURS VECTORS!!!"<<std::endl;
 	
 	std::vector<Contour*> result_contours;
-	std::map<double, std::set<Contour*>> all_active_contours;				//contours on outer layers, mapped by z coordinate
-	std::set<Contour*> current_z_active_contours;										// to be check for crossing with new contours
+	std::map<double, std::vector<Contour*>> all_active_contours;				//contours on outer layers, mapped by z coordinate
+	std::vector<Contour*> current_z_active_contours;										// to be check for crossing with new contours
+	std::vector<Contour*> new_equidistant_contours;
 	Contour *field_contour = NULL;
 	ErrorsLog local_errors_log;
 	bool abort = false;
 	
 		//this loop passes all z_planes
 	for(auto &it_z_plane : raw_contours){
+
 			//for each new plane need to create field contour
 			if(!workfield->GenerateFieldContour(it_z_plane.first, &local_errors_log, &field_contour)){
 				errors_log->CopyErrors(&local_errors_log);
@@ -324,38 +328,67 @@ std::vector<Contour*> ContoursAggregator::GetPreparedContours(const double &spac
 			}
 	
 			assert(field_contour != NULL);
-			
-			//field contour made successfully
-			//first equidistant and merge field conotur
-			/*
-			if(!EquidistantAndMerge(field_contour, spacing, &current_z_active_contours)){
-				abort = true;
-				break;
-			}
-			*/
-			
+
+			current_z_active_contours.push_back(field_contour);
+			//field contour represents workfield boundaries. It was made successfully. 
+			//It was added to active contours of this z_plane
+			//As of now, this set of active contours consists only of field contour
+				
 			//this loop passes all raw contours which belong to same z plane
-		for(auto &it_contour_set : it_z_plane.second){
-			/*
-			if(!EquidistantAndMerge(it_contour_set, spacing)){
+		for(auto &it_raw_contour : it_z_plane.second){
+			//Make equidistant contour from every raw contour
+			//After equidistanting, contour can transform into more than one contour. 
+			//Thats why new contour(s) to be returned in set
+			new_equidistant_contours.clear();
+			if(!Equidistant(it_raw_contour, spacing, &new_equidistant_contours)){		
+				abort = true;
+				break;				
+			}
+			//Every new equidistant contour to be added into active contours. 
+			//If it intersects with existing contours, cut overlapping parts
+			AddAndSolveIntersections(new_equidistant_contours, spacing, &current_z_active_contours);
+		}
+		
+		std::vector<Contour*> active_contours_iterator;
+
+		//Now all raw contours processed
+		//Equidistant active contours one by one until have at least one
+		//eache time when active contour is equidistanted, new equidistant is added (if it valid), and old contour is removed
+		//so, when last active contour's equidistant is not valid, loop is finished
+		//equidistant is valid when it forms at least part of new contour
+		//old contour (the one which was equidistanted) to be moved from active contours set to result conoturs set
+		while(!current_z_active_contours.empty()){
+			new_equidistant_contours.clear();
+			active_contours_iterator = current_z_active_contours.begin();
+			
+			if(!Equidistant(*active_contours_iterator, spacing, &new_equidistant_contours)){
 				abort = true;
 				break;
 			}
-			*/
+
+			result_contours.push_back(*active_contours_iterator);
+			current_z_active_contours.erase(active_contours_iterator);
+
+			AddAndSolveIntersections(new_equidistant_contours, spacing, &current_z_active_contours);
 		}
 		
 		if(abort)
 			break;
+
 	}
 	
 	if(abort){
 		std::cout<<"aborted"<<std::endl;
 		errors_log->AddError(GENERAL_ERROR);
+		for(auto &it: current_z_active_contours)
+			delete it;
+		for(auto &it: new_equidistant_contours)
+			delete it;
 		for(auto &it : result_contours)
 			delete it;
 		delete field_contour;
 	}
-	std::cout<<"GetPreparedContours done!"<<std::endl;
+	std::cout<<"GetPreparedContours done! result size: "<<result_contours.size()<<std::endl;
 	return result_contours;
 }
 

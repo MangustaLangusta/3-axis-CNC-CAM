@@ -56,9 +56,12 @@ class ContoursAggregator{
 		std::list<Point3D> GenerateEquidistantContourFragment(const Point3D &prev_wpt, const Point3D &current_wpt, const Point3D &next_wpt);
 
 		
-		bool Equidistant(const Contour* source_contour, const double &spacing, Contour* new_equidistant_contour);
+		bool Equidistant(const Contour* &source_contour, const double &spacing, std::vector<Contour*> *new_equidistant_contours);
 		bool EquidistantSinglePointContour(const Point3D &single_wpt, const double &spacing, Contour* equidistant_contour);
-		//bool Merge(const Contour* contour_to_be_merged, std::set<Contour*> active_contours);
+
+		//check, if each of contours_to_be_merged intersects active conoturs. if no intersection, just add new contour to active contours set
+		//if have intersection, two contours merge into one contour, which is added in the end of active contours vector
+		bool AddAndSolveIntersections(const std::vector<Contour*> &contours_to_be_merged, std::vector<Contour*> *active_contours);
 		
 	public:
 		ContoursAggregator(const std::vector<std::list<Point3D>> source_contours, ErrorsLog *errors_log);

@@ -501,7 +501,6 @@ bool MathOperations::UnlimitedIntersectionOfTwoLines(const Line3D &line_a, const
 	
 	if(Gauss(extended_matrix, result)){
 		*intersection_point = result;
-		Print(result);
 		return true;
 	}
 	return false;
