@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <list>
 #include <assert.h>
 #include "BasicStructs.h"
