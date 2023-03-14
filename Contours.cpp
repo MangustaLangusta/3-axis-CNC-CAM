@@ -230,21 +230,74 @@ ContoursAggregator::~ContoursAggregator(){
 	delete workfield;
 }
 
-std::list<Point3D> ContoursAggregator::GenerateEquidistantContourFragment(const Point3D &prev_wpt, const Point3D &current_wpt, const Point3D &next_wpt){
+std::list<Point3D> ContoursAggregator::GenerateEquidistantContourFragment(const Point3D &prev_wpt, const Point3D &current_wpt, const Point3D &next_wpt, const double &spacing){
 	std::list<Point3D> result_list;
+	double rotation_angle, length, bissectris;
+	bool sharp_angle;
 	
-	//Make something
+	MathVector3D vec_1(prev_wpt, current_wpt);
+	MathVector3D vec_2(current_wpt, next_wpt);
+
+		//if waypoints are on same line
+	if(MathOperations::AngleBetweenVectors(vec_1, vec_2) == PI){
+		vec_1.Normalize();
+		vec_1.Rotate(Z_AXIS, PI /2);
+		vec_1.MultiplyByNumber(spacing);
+		Point3D new_leg = current_wpt;
+		new_leg.Shift(vec_1);
+		result_list.push_back(new_leg);
+		return result_list;
+	}
+
+	sharp_angle = MathOperations::VectorMultiplication(vec_1, vec_2).GetZ() > 0 ? false : true;
+	bissectris = MathOperations::AngleBetweenVectors(vec_1, vec_2) / 2;
+
+		//if right-hand angle is sharp, only one waypoint: intersection of equidistant lines
+	if(sharp_angle){
+		length = spacing / sin(bissectris);
+		rotation_angle = PI - bissectris;
+		vec_1.Normalize();
+		vec_1.Rotate(Z_AXIS, rotation_angle);
+		vec_1.MultiplyByNumber(length);
+		Point3D new_leg = current_wpt;
+		new_leg.Shift(vec_1);
+		result_list.push_back(new_leg);
+		return result_list;
+	}
+
+		//if right-hand angle is not sharp: two waypoints
 	
+	Point3D new_leg_1, new_leg_2;
+
+	rotation_angle = (PI - bissectris) / 2;
+	length = spacing / cos(rotation_angle);
+	
+	
+	vec_1.Normalize();
+	vec_1.Rotate(Z_AXIS, rotation_angle);
+	vec_1.MultiplyByNumber(length);
+	new_leg_1 = current_wpt;
+	new_leg_1.Shift(vec_1);
+
+	
+	vec_2.Normalize();
+	vec_2.Rotate(Z_AXIS, -rotation_angle);
+	vec_2.MultiplyByNumber(length);
+	new_leg_2 = current_wpt;
+	new_leg_2.Shift(vec_2);
+
+	result_list.push_back(new_leg_1);
+	result_list.push_back(new_leg_2);
 	
 	return result_list;
 }
 
-bool ContoursAggregator::EquidistantSinglePointContour(const Point3D &single_wpt, const double &spacing, Contour* equidistant_contour){
+bool ContoursAggregator::EquidistantSinglePointContour(const Point3D &single_wpt, const double &spacing, std::vector<Contour*> *equidistant_contours){
 	std::cout<<"Equidistant contour for single point function is not yet done"<<std::endl;
 	return false;
 }
 
-bool ContoursAggregator::Equidistant(const Contour* source_contour, const double &spacing, Contour* new_equidistant_contour){
+bool ContoursAggregator::Equidistant(const Contour* const &source_contour, const double &spacing, std::vector<Contour*> *new_equidistant_contours){
 	std::cout<<"Inside equidistant funсtion"<<std::endl;
 	
 	std::list<Point3D> new_wpts;
@@ -256,7 +309,7 @@ bool ContoursAggregator::Equidistant(const Contour* source_contour, const double
 	
 		//case when single-point contour to be equidistanted
 	if(source_wpts.size() == 1)
-		return EquidistantSinglePointContour(*source_wpts.begin(), spacing, new_equidistant_contour);
+		return EquidistantSinglePointContour(*source_wpts.begin(), spacing, new_equidistant_contours);
 	
 	assert(source_wpts.size() > 2);
 	
@@ -272,7 +325,7 @@ bool ContoursAggregator::Equidistant(const Contour* source_contour, const double
 		prev_wpt--;
 		
 			//make equidistant fragment over current waypoint (using also prev and next wpts)
-		equidistant_fragment = GenerateEquidistantContourFragment(*prev_wpt, *current_wpt, *next_wpt);
+		equidistant_fragment = GenerateEquidistantContourFragment(*prev_wpt, *current_wpt, *next_wpt, spacing);
 		
 			//insert each new fragment in the end of new contour waypoints list
 		new_wpts.insert(new_wpts.end(), equidistant_fragment.begin(), equidistant_fragment.end());
@@ -280,14 +333,20 @@ bool ContoursAggregator::Equidistant(const Contour* source_contour, const double
 	
 		//try to make contour from new waypoints
 	std::cout<<"Need to make check for self-crossing for contours"<<std::endl;
-	new_equidistant_contour = new Contour(new_wpts, &local_errors_log);
+	new_equidistant_contours->push_back(new Contour(new_wpts, &local_errors_log));
 		
 		//errors handling
 	if(local_errors_log.HaveErrors()){
-			delete new_equidistant_contour;
+			delete *(new_equidistant_contours->rbegin());
+			new_equidistant_contours->pop_back();
 			return false;
 		}
 	return true;
+}
+
+bool ContoursAggregator::AddAndSolveIntersections(const std::vector<Contour*> &contours_to_be_merged, const double &spacing, std::vector<Contour*> *active_contours){
+	std::cout<<"Function AddAndSolveIntersections not yet done"<<std::endl;
+	return false;
 }
 
 
@@ -349,14 +408,14 @@ std::vector<Contour*> ContoursAggregator::GetPreparedContours(const double &spac
 			AddAndSolveIntersections(new_equidistant_contours, spacing, &current_z_active_contours);
 		}
 		
-		std::vector<Contour*> active_contours_iterator;
+		std::vector<Contour*>::iterator active_contours_iterator;
 
 		//Now all raw contours processed
-		//Equidistant active contours one by one until have at least one
+		//Equidistant active contours one by one until empty
 		//eache time when active contour is equidistanted, new equidistant is added (if it valid), and old contour is removed
 		//so, when last active contour's equidistant is not valid, loop is finished
 		//equidistant is valid when it forms at least part of new contour
-		//old contour (the one which was equidistanted) to be moved from active contours set to result conoturs set
+		//old contour (the one which was equidistanted) to be moved from active contours set to result contours set
 		while(!current_z_active_contours.empty()){
 			new_equidistant_contours.clear();
 			active_contours_iterator = current_z_active_contours.begin();

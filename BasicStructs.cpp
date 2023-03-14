@@ -1,5 +1,11 @@
 #include "BasicStructs.h"
 
+void Point3D::Shift(const MathVector3D &shift_vector){
+	x += shift_vector.GetX();
+	y += shift_vector.GetY();
+	z += shift_vector.GetZ();
+}
+
 bool operator== (const Point3D &a, const Point3D &b){	return ( (a.x == b.x) && (a.y == b.y) && (a.z == b.z) ); }
 
 bool operator< (const Point3D &a, const Point3D &b){
@@ -182,6 +188,36 @@ MathVector3D::MathVector3D(const Point3D &root, const Point3D &top){
 	};
 }
 
+bool operator== (const MathVector3D &a, const MathVector3D &b){
+	return (a.vector_top == b.vector_top);
+}
+
+bool operator!= (const MathVector3D &a, const MathVector3D &b){
+	return (a.vector_top != b.vector_top);
+}
+
+void MathVector3D::Rotate(const MathVector3D &axis, const double &angle_rad){
+
+		//TODO: implement rotation around any axis, not only z-axis
+
+	if(axis != Z_AXIS)
+		std::cout<<"MathVector3D::Rotate(): Rotation implemented only for z-axis! Requested axis is different"<<std::endl;
+	
+	Matrix rotation_matrix(	{	{cos(angle_rad),	-sin(angle_rad),	0},
+											 			{sin(angle_rad),	cos(angle_rad),		0},
+														{0,								0, 								1}	}	);
+	
+
+
+	
+}
+
+void MathVector3D::MultiplyByNumber(const double &number){
+	vector_top.x *= number;
+	vector_top.y *= number;
+	vector_top.z *= number;
+}
+
 void MathVector3D::Normalize(){
 	double module = Module();
 	double x = vector_top.x;
@@ -210,6 +246,10 @@ double MathVector3D::GetY() const{
 
 double MathVector3D::GetZ() const{
 	return vector_top.z;
+}
+
+Matrix MathVector3D::MatrixForm() const{
+	return Matrix( { {vector_top.x}, {vector_top.y}, {vector_top.z} } );
 }
 
 MathVector3D Triangle3D::GetNormal() const{
@@ -382,6 +422,10 @@ int Matrix::ColsAmount() const {
 
 int Matrix::RowsAmount() const {
 	return size.first;
+}
+
+void Matrix::Transpose(){
+	
 }
 
 void Matrix::Print() const {
@@ -575,4 +619,32 @@ double MathOperations::AngleBetweenVectors(const MathVector3D &vec_a, const Math
 double MathOperations::DistanceBetweenPoints(const Point3D &point_a, const Point3D &point_b){
 	MathVector3D new_vector(point_a, point_b);
 	return new_vector.Module();
+}
+
+Matrix MathOperations::MatrixMultiplication(const Matrix &left_matrix, const Matrix &right_matrix){
+	std::vector<std::vector<double>> result_matrix, left, right;
+	std::vector<double> new_row;
+	double new_element;
+
+	assert(left_matrix.ColsAmount() == right_matrix.RowsAmount());
+
+	if(left_matrix.ColsAmount() != right_matrix.RowsAmount())
+		return result_matrix;
+
+	left = left_matrix.GetElements();
+	right = right_matrix.GetElements();
+
+	for(int row = 0; row < left_matrix.RowsAmount(); row++){
+		new_row.clear();
+		for(int col = 0; col < right_matrix.ColsAmount(); col++){
+			new_element = 0;
+			for(int i = 0; i < left_matrix.ColsAmount(); i++){
+				new_element += left[row][i] * right[i][col];
+			}
+			new_row.push_back(new_element);
+		}
+		result_matrix.push_back(new_row);
+	}
+
+	return Matrix(result_matrix);
 }

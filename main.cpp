@@ -27,12 +27,28 @@
 #define DEFAULT_LOG_FILE_NAME "log.txt"
 
 
-using namespace std;
-
 
 int main(int argc, char *argv[]){
 	
-			
+	Point3D prev_wpt = {7, 1, 0};
+	Point3D current_wpt = {7, 7, 0};
+	Point3D next_wpt = {1, 7, 0};
+
+	int angle_sign;
+
+	MathVector3D vec_1(prev_wpt, current_wpt);
+	MathVector3D vec_2(current_wpt, next_wpt);
+
+	if(MathOperations::VectorMultiplication(vec_1, vec_2).GetZ() > 0)
+		angle_sign = 1;
+	else 
+		angle_sign = -1;
+
+	double bissectris = angle_sign * MathOperations::AngleBetweenVectors(vec_1, vec_2) / 2;	
+	std::cout<<"angle between vectors = "<<angle_sign * MathOperations::AngleBetweenVectors(vec_1, vec_2)<<" bissectris = "<<bissectris<<std::endl;
+	
+	return 0;		
+
 	TaskManager main_task_manager(argc, argv);
 	main_task_manager.StartTasksExecution();
 
