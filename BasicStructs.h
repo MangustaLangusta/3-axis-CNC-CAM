@@ -40,6 +40,7 @@ struct MathVector3D{
 	friend bool operator== (const MathVector3D &a, const MathVector3D &b);
 	friend bool operator!= (const MathVector3D &a, const MathVector3D &b);
 	void Normalize();
+		//clockwise is positive rotation
 	void Rotate(const MathVector3D &axis, const double &angle_rad);
 	void MultiplyByNumber(const double &number);
 	double Module() const;
@@ -47,6 +48,7 @@ struct MathVector3D{
 	double GetY() const;
 	double GetZ() const;
 	Matrix MatrixForm() const;
+	void Print() const;
 };
 
 struct Line3D{

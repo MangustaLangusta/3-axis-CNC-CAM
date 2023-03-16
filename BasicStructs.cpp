@@ -203,13 +203,16 @@ void MathVector3D::Rotate(const MathVector3D &axis, const double &angle_rad){
 	if(axis != Z_AXIS)
 		std::cout<<"MathVector3D::Rotate(): Rotation implemented only for z-axis! Requested axis is different"<<std::endl;
 	
-	Matrix rotation_matrix(	{	{cos(angle_rad),	-sin(angle_rad),	0},
-											 			{sin(angle_rad),	cos(angle_rad),		0},
+	Matrix rotation_matrix(	{	{cos(angle_rad),	sin(angle_rad),	0},
+											 			{-sin(angle_rad),	cos(angle_rad),		0},
 														{0,								0, 								1}	}	);
 	
+	Matrix result_matrix = MathOperations::MatrixMultiplication(rotation_matrix, this->MatrixForm());
 
+	assert( (result_matrix.ColsAmount() == 1) && (result_matrix.RowsAmount() == 3) );
 
-	
+	std::vector<std::vector<double>> result_vector = result_matrix.GetElements();
+	vector_top = {result_vector[0][0], result_vector[1][0], result_vector[2][0]};
 }
 
 void MathVector3D::MultiplyByNumber(const double &number){
@@ -250,6 +253,10 @@ double MathVector3D::GetZ() const{
 
 Matrix MathVector3D::MatrixForm() const{
 	return Matrix( { {vector_top.x}, {vector_top.y}, {vector_top.z} } );
+}
+
+void MathVector3D::Print() const{
+	std::cout<<"vector: "<<vector_top.x<<" "<<vector_top.y<<" "<<vector_top.z<<std::endl;
 }
 
 MathVector3D Triangle3D::GetNormal() const{
@@ -425,7 +432,16 @@ int Matrix::RowsAmount() const {
 }
 
 void Matrix::Transpose(){
-	
+	std::vector<std::vector<double>> new_elements;
+	for(int col = 0; col < ColsAmount(); col++)
+			new_elements.push_back({});
+	for(int col = 0; col < ColsAmount(); col++){
+		for(int row = 0; row < RowsAmount(); row++){
+			new_elements[col].push_back(elements[row][col]);
+		}
+	}
+	elements = new_elements;
+	size = std::make_pair(elements.size(), elements[0].size());
 }
 
 void Matrix::Print() const {

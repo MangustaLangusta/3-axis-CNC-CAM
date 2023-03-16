@@ -341,6 +341,8 @@ void TaskPathPatternsFromContours::Execute(){
 	assert(contours_aggregator != NULL);
 	
 	contours_aggregator->AssignWorkField(project->GetAssignedWorkField());
+
+		//All magic is here \/ \/ \/
 	prepared_contours = contours_aggregator->GetPreparedContours(path_settings.horizontal_spacing, &local_errors_log);
 	
 		//errors handling
